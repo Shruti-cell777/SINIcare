@@ -45,12 +45,13 @@
   <!-- ══════════════════════════════════════════════════════════
        SETUP MODAL — First run / API Key entry
        ══════════════════════════════════════════════════════════ -->
-  <div id="setup-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+  <div id="setup-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="setup-title">
     <div class="modal" style="max-width: 500px;">
       <div class="modal-header">
         <h1 class="modal-title" id="setup-title" data-i18n="setup.title">
           Welcome to SINIcare! 🌟
         </h1>
+        <button class="modal-close" id="setup-close-btn" aria-label="Close setup modal">✕</button>
       </div>
       <div class="modal-body">
         <p style="font-size: var(--font-size-md); color: var(--color-text-muted);" data-i18n="setup.subtitle">
@@ -410,23 +411,35 @@
       </div>
 
       <nav class="header-controls" aria-label="App controls">
-        <!-- Simple Hindi/English toggle pill -->
-        <button
-          id="lang-toggle"
-          class="lang-pill-btn"
-          aria-label="Switch language between Hindi and English"
-          title="Switch Language / भाषा बदलें"
-        >
-          <span class="lang-pill-flag" id="lang-flag-indicator" aria-hidden="true">🇮🇳</span>
-          <span class="lang-pill-label" id="lang-current-label">हिन्दी</span>
-        </button>
+        <!-- Persistent Dual Language Selector -->
+        <div class="lang-switch-group" role="group" aria-label="Language selection / भाषा चुनें">
+          <button
+            id="lang-btn-hi"
+            class="lang-seg-btn active"
+            aria-pressed="true"
+            title="हिन्दी मोड चालू करें"
+          >
+            🇮🇳 हिन्दी
+          </button>
+          <button
+            id="lang-btn-en"
+            class="lang-seg-btn"
+            aria-pressed="false"
+            title="Switch to English"
+          >
+            🇬🇧 English
+          </button>
+        </div>
+
+        <!-- Hidden compat button -->
+        <button id="lang-toggle" class="visually-hidden" aria-hidden="true" tabindex="-1"></button>
 
         <!-- Clear chat -->
         <button
           id="clear-chat-btn"
           class="btn btn-icon"
           aria-label="Clear all chat history"
-          title="Clear Chat"
+          title="Clear Chat / चैट साफ़ करें"
         >🗑️</button>
 
         <!-- Settings -->
@@ -434,7 +447,7 @@
           id="settings-btn"
           class="btn btn-icon"
           aria-label="Open settings"
-          title="Settings"
+          title="Settings / सेटिंग्स"
         >⚙️</button>
       </nav>
     </header>
@@ -442,137 +455,182 @@
     <!-- ── Main content ── -->
     <main id="app-main">
 
-      <!-- ── Quick Actions ── -->
-      <section id="quick-actions" aria-label="Quick actions">
-        <div class="quick-actions-label" aria-hidden="true">Quick Help</div>
-        <div id="quick-actions-grid" class="quick-actions-grid" role="group" aria-label="Quick action shortcuts">
+      <!-- ── Hero Section (Primary Action: Prominent Tap & Speak) ── -->
+      <section id="hero-voice-section" class="hero-voice-card" aria-label="Primary voice assistance">
+        <div class="hero-greeting-container">
+          <h1 class="hero-greeting-text" id="hero-greeting-title">Good Afternoon 👋</h1>
+          <p class="hero-greeting-subtitle" id="hero-greeting-sub">Tell me what you need help with, or tap below to speak</p>
+        </div>
 
-          <button id="qa-scam" class="qa-btn" aria-label="Check if a message is a scam">
-            <span class="qa-btn-icon" aria-hidden="true">🛡️</span>
-            <span class="qa-btn-label" data-i18n="qa.scam">Check Scam</span>
+        <!-- Prominent Hero Microphone & Tap to Speak Button -->
+        <div class="hero-mic-center">
+          <div class="hero-mic-pulse-ring" id="hero-mic-ring" aria-hidden="true"></div>
+          <button
+            id="hero-mic-btn"
+            class="hero-mic-button state-idle"
+            aria-label="Tap and speak in Hindi or English"
+            aria-pressed="false"
+            type="button"
+          >
+            <span class="hero-mic-emoji" id="hero-mic-emoji">🎙️</span>
+            <span class="hero-mic-label" id="hero-mic-label">Tap &amp; Speak</span>
+          </button>
+        </div>
+
+        <!-- 4-Stage Status State: Tap to speak → Listening → Understanding → Speaking -->
+        <div class="hero-mic-status-area">
+          <div class="hero-state-pill state-idle" id="hero-state-pill">
+            <span class="hero-state-dot" aria-hidden="true"></span>
+            <span class="hero-state-label" id="hero-state-label">🎙️ Ready to listen (Hindi &amp; English)</span>
+          </div>
+          <div class="hero-prompt-quote" id="hero-prompt-quote">
+            “You can speak naturally in Hindi or English”
+          </div>
+        </div>
+
+        <!-- Active Listening & Live Transcript Drawer (shown while speaking) -->
+        <div id="hero-active-tray" class="hero-active-tray hidden" aria-live="assertive">
+          <div class="hero-transcript-box">
+            <span class="hero-transcript-icon">🎙️</span>
+            <span class="hero-transcript-text" id="hero-transcript-text">बोलें, आपकी आवाज़ यहाँ दिखेगी...</span>
+          </div>
+          <div class="hero-active-actions">
+            <button id="hero-done-btn" type="button" class="btn btn-primary hero-action-btn">
+              बोलना पूरा हुआ ✓
+            </button>
+            <button id="hero-cancel-btn" type="button" class="btn btn-ghost hero-cancel-btn">
+              ✕ रद्द करें
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Speaking Drawer (shown while SINI reads aloud) -->
+        <div id="hero-speaking-tray" class="hero-speaking-tray hidden" aria-live="polite">
+          <button id="hero-stop-speak-btn" type="button" class="btn btn-secondary hero-stop-speak-btn">
+            ⏹️ Stop Speaking / आवाज़ रोकें
+          </button>
+        </div>
+
+        <!-- Optional Collapsible Typing Fallback -->
+        <details class="hero-type-fallback" id="hero-type-details">
+          <summary class="hero-type-summary">
+            <span>⌨️ Or type your message / या लिखकर पूछें</span>
+          </summary>
+          <div class="hero-type-form">
+            <textarea
+              id="user-input"
+              rows="2"
+              class="hero-type-textarea"
+              placeholder="Type your question or message here..."
+              aria-label="Type your message"
+            ></textarea>
+            <div class="hero-type-controls">
+              <button id="tts-toggle" class="btn btn-round active" aria-label="Read aloud: ON" aria-pressed="true" title="Toggle read-aloud" style="font-size:20px;">🔊</button>
+              <button id="send-btn" class="btn btn-primary" aria-label="Send message" style="padding:10px 24px; font-weight:700;">
+                Send / भेजें →
+              </button>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ── Secondary Actions (6 Major Task Cards) ── -->
+      <section id="task-cards-section" class="task-cards-section" aria-label="Essential tasks">
+        <h2 class="task-cards-heading" id="task-cards-heading">
+          Or choose a task below:
+        </h2>
+        <div class="task-cards-grid" role="group" aria-label="Common actions for seniors">
+
+          <!-- 1. Explain Document -->
+          <button id="qa-simplify" class="task-card" aria-label="Explain a document or simplify text">
+            <div class="task-card-icon" aria-hidden="true">📄</div>
+            <div class="task-card-content">
+              <div class="task-card-title" data-i18n="qa.simplify">Explain a document</div>
+              <div class="task-card-desc">Make complex letters or messages simple</div>
+            </div>
           </button>
 
-          <button id="qa-simplify" class="qa-btn" aria-label="Simplify a document or message">
-            <span class="qa-btn-icon" aria-hidden="true">📄</span>
-            <span class="qa-btn-label" data-i18n="qa.simplify">Simplify Text</span>
+          <!-- 2. Check Scam -->
+          <button id="qa-scam" class="task-card" aria-label="Check if a message or SMS is a scam">
+            <div class="task-card-icon" aria-hidden="true">🛡️</div>
+            <div class="task-card-content">
+              <div class="task-card-title" data-i18n="qa.scam">Check a message</div>
+              <div class="task-card-desc">Verify if a link or SMS is safe</div>
+            </div>
           </button>
 
-          <button id="qa-form" class="qa-btn" aria-label="Get help filling out a form">
-            <span class="qa-btn-icon" aria-hidden="true">📋</span>
-            <span class="qa-btn-label" data-i18n="qa.form">Fill a Form</span>
+          <!-- 3. Order Groceries -->
+          <button id="qa-grocery" class="task-card" aria-label="Order groceries via Blinkit">
+            <div class="task-card-icon" aria-hidden="true">🛒</div>
+            <div class="task-card-content">
+              <div class="task-card-title" data-i18n="qa.grocery">Order groceries</div>
+              <div class="task-card-desc">Milk, vegetables, and daily essentials</div>
+            </div>
           </button>
 
-          <button id="qa-reminder" class="qa-btn" aria-label="Set a reminder or view my reminders">
-            <span class="qa-btn-icon" aria-hidden="true">⏰</span>
-            <span class="qa-btn-label" data-i18n="qa.reminder">Reminders</span>
+          <!-- 4. Reminders -->
+          <button id="qa-reminder" class="task-card" aria-label="Set or view medicine and daily reminders">
+            <div class="task-card-icon" aria-hidden="true">📅</div>
+            <div class="task-card-content">
+              <div class="task-card-title" data-i18n="qa.reminder">My reminders</div>
+              <div class="task-card-desc">Medicine times and important tasks</div>
+            </div>
           </button>
 
-          <button id="qa-grocery" class="qa-btn" aria-label="Order groceries via Blinkit" style="border-color: #f5a623;">
-            <span class="qa-btn-icon" aria-hidden="true">🛒</span>
-            <span class="qa-btn-label" data-i18n="qa.grocery">Order Groceries</span>
+          <!-- 5. Help Online -->
+          <button id="qa-website" class="task-card" aria-label="Get help using websites and online services">
+            <div class="task-card-icon" aria-hidden="true">🌐</div>
+            <div class="task-card-content">
+              <div class="task-card-title" data-i18n="qa.website">Help me online</div>
+              <div class="task-card-desc">Step-by-step help with websites</div>
+            </div>
           </button>
 
-          <button id="qa-website" class="qa-btn" aria-label="Get help using a website">
-            <span class="qa-btn-icon" aria-hidden="true">🌐</span>
-            <span class="qa-btn-label" data-i18n="qa.website">Help with Website</span>
-          </button>
-
-          <button id="qa-help" class="qa-btn" aria-label="Call a trusted family member" style="border-color: var(--color-accent);">
-            <span class="qa-btn-icon" aria-hidden="true">📞</span>
-            <span class="qa-btn-label" data-i18n="qa.help">Call Family</span>
+          <!-- 6. Contact Family -->
+          <button id="qa-help" class="task-card task-card-family" aria-label="Call your trusted family member">
+            <div class="task-card-icon" aria-hidden="true">👨‍👩‍👧</div>
+            <div class="task-card-content">
+              <div class="task-card-title" data-i18n="qa.help">Contact family</div>
+              <div class="task-card-desc">Call or notify your trusted contact</div>
+            </div>
           </button>
 
         </div>
       </section>
 
-      <!-- ── Chat area ── -->
+      <!-- ── Conversation Stream / Answers ── -->
       <section
         id="chat-area"
+        class="conversation-section"
         role="log"
         aria-label="Conversation with SINI"
         aria-live="polite"
         tabindex="0"
       >
-        <!-- Welcome / empty state -->
-        <div id="welcome-message" role="region" aria-label="Welcome message">
-          <div class="welcome-icon" aria-hidden="true">🌟</div>
-          <h2 style="font-size: var(--font-size-xl); color: var(--color-text);" data-i18n="welcome.greeting">
-            Hello! I'm SINI 👋
-          </h2>
-          <p style="font-size: var(--font-size-md); color: var(--color-text-muted);" data-i18n="welcome.hint">
-            Type or speak anything you need help with — I'm here!
-          </p>
-          <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); font-style:italic;" data-i18n="welcome.examples">
-            Try: "Is this message safe?" or "Help me fill a form"
+        <!-- Welcome empty state -->
+        <div id="welcome-message" class="conversation-empty-state" role="region" aria-label="Welcome message">
+          <div class="empty-state-badge">✨ Digital Companion Ready</div>
+          <p class="empty-state-subtext">
+            Tap the big microphone above to speak, or select any task card. SINI will answer clearly in your chosen language.
           </p>
         </div>
-        <!-- Chat messages rendered here by chat.js -->
       </section>
+
+      <!-- ── Persistent Bottom Language Switcher Bar ── -->
+      <div class="bottom-lang-bar" role="region" aria-label="Language selection">
+        <span class="bottom-lang-title">भाषा / Language:</span>
+        <div class="bottom-lang-pills">
+          <button id="bottom-lang-hi" class="bottom-pill-btn active" aria-pressed="true">🇮🇳 हिन्दी</button>
+          <span class="bottom-pill-divider">|</span>
+          <button id="bottom-lang-en" class="bottom-pill-btn" aria-pressed="false">🇬🇧 English</button>
+        </div>
+      </div>
 
     </main>
 
-    <!-- ── Large Voice Controls Active Banner ── -->
-    <div id="voice-banner" class="voice-banner hidden" role="region" aria-live="assertive" aria-label="Voice input active">
-      <div class="voice-banner-content">
-        <div class="voice-pulse-ring" aria-hidden="true">
-          <span class="voice-pulse-icon">🎙️</span>
-        </div>
-        <div class="voice-banner-text">
-          <div class="voice-status-title" id="voice-status-title" data-i18n="voice.listening.hi">सुन रहा हूँ... बोलिए</div>
-          <div class="voice-transcript-preview" id="voice-transcript-preview">बोलें, आपकी आवाज़ यहाँ दिखेगी...</div>
-        </div>
-        <div class="voice-banner-actions">
-          <button id="voice-stop-btn" type="button" class="btn btn-primary" style="min-height:48px; padding: 10px 18px; font-size:16px;" data-i18n="voice.stop">बोलना पूरा हुआ</button>
-          <button id="voice-cancel-btn" type="button" class="btn btn-ghost" style="min-height:48px; padding: 10px 14px; font-size:15px; color: var(--color-danger);" data-i18n="voice.cancel">✕ रद्द करें</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Input area ── -->
-    <footer id="input-area" role="contentinfo" aria-label="Message input">
-      <!-- Mic button -->
-      <button
-        id="mic-btn"
-        class="btn btn-round"
-        aria-label="Press to speak"
-        aria-pressed="false"
-        title="Speak your message"
-      >🎤</button>
-
-      <!-- Text input -->
-      <textarea
-        id="user-input"
-        rows="1"
-        data-i18n-placeholder="input.placeholder"
-        placeholder="Type your message here..."
-        aria-label="Type your message"
-        aria-multiline="true"
-        autocomplete="off"
-        spellcheck="true"
-      ></textarea>
-
-      <!-- TTS toggle -->
-      <button
-        id="tts-toggle"
-        class="btn btn-round active"
-        aria-label="Read aloud: ON"
-        aria-pressed="true"
-        title="Toggle read-aloud"
-        style="font-size:20px; background:var(--color-surface-alt); color:var(--color-primary); border:2px solid var(--color-border);"
-      >🔊</button>
-
-      <!-- Send button -->
-      <button
-        id="send-btn"
-        class="btn btn-round btn-primary"
-        aria-label="Send message"
-        title="Send"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </button>
-    </footer>
+    <!-- Compat elements for legacy references -->
+    <button id="mic-btn" class="visually-hidden" aria-hidden="true" tabindex="-1"></button>
+    <div id="voice-banner" class="visually-hidden" aria-hidden="true"></div>
 
   </div><!-- #app -->
 

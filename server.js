@@ -69,11 +69,30 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log('\n==================================================');
-  console.log('🌟 SINIcare — Senior Digital Companion');
-  console.log('==================================================');
-  console.log(`\n🚀 App running at:    http://localhost:${PORT}`);
-  console.log(`🧪 Test suite at:    http://localhost:${PORT}/tests/index.html`);
-  console.log('\nPress Ctrl + C to stop the server.\n');
+function startServer(port) {
+  server.listen(port, () => {
+    console.log('\n==================================================');
+    console.log('🌟 SINIcare — Senior Digital Companion');
+    console.log('==================================================');
+    console.log(`\n🚀 App running at:    http://localhost:${port}`);
+    console.log(`🧪 Test suite at:    http://localhost:${port}/tests/index.html`);
+    console.log('\nPress Ctrl + C to stop the server.\n');
+  });
+}
+
+let currentPort = Number(PORT);
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.warn(`\n⚠️  Port ${currentPort} is currently in use. Trying port ${currentPort + 1}...`);
+    currentPort += 1;
+    setTimeout(() => {
+      startServer(currentPort);
+    }, 300);
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
+  }
 });
+
+startServer(currentPort);
+

@@ -18,10 +18,12 @@ import {
   toggleRecording,
   cancelRecording,
   getIsRecording,
+  switchSttLanguage,
   sttSupported,
   ttsSupported,
   waitForVoices,
   speak,
+  stopSpeaking,
 } from './voice.js';
 import { initQuickActions } from './features/quickActions.js';
 import { initScamDetector } from './features/scamDetector.js';
@@ -88,16 +90,160 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 8. Update TTS button and Language button states
   updateTtsBtn();
   updateLangButton(getLang());
+
+  // 9. Global bridge: voice.js / other modules dispatch 'sini:toast' to avoid circular deps
+  window.addEventListener('sini:toast', (e) => {
+    const { message, type } = e.detail || {};
+    if (message) showToast(message, type || 'info');
+  });
 });
 
-// ── Input area & Voice Controls ───────────────────────────────────────────────
+// ── Hero Microphone State Machine & UI Controls ───────────────────────────────
+
+let currentHeroState = 'idle'; // 'idle' | 'listening' | 'thinking' | 'speaking'
+
+/**
+ * Updates the Hero Microphone's visual state across the 4 stages:
+ *  - idle: Tap to speak (Blue gradient)
+ *  - listening: Listening... (Red pulsing ring + active transcript tray)
+ *  - thinking: Understanding... (Amber glow)
+ *  - speaking: Speaking... (Green glow + stop speaking tray)
+ *
+ * @param {'idle'|'listening'|'thinking'|'speaking'} state
+ */
+export function setHeroMicState(state) {
+  currentHeroState = state;
+  const isHi = getLang() === 'hi';
+
+  const micBtn        = document.getElementById('hero-mic-btn');
+  const micEmoji      = document.getElementById('hero-mic-emoji');
+  const micLabel      = document.getElementById('hero-mic-label');
+  const micRing       = document.getElementById('hero-mic-ring');
+  const statePill     = document.getElementById('hero-state-pill');
+  const stateLabel    = document.getElementById('hero-state-label');
+  const promptQuote   = document.getElementById('hero-prompt-quote');
+  const activeTray    = document.getElementById('hero-active-tray');
+  const speakingTray  = document.getElementById('hero-speaking-tray');
+
+  if (!micBtn) return;
+
+  // Reset classes
+  micBtn.className = `hero-mic-button state-${state}`;
+  if (statePill) statePill.className = `hero-state-pill state-${state}`;
+
+  switch (state) {
+    case 'listening':
+      if (micEmoji) micEmoji.textContent = '🎙️';
+      if (micLabel) micLabel.textContent = isHi ? 'सुन रहा हूँ...' : 'Listening...';
+      if (stateLabel) stateLabel.textContent = isHi ? '🔴 सुन रहा हूँ (हिंदी / English)' : '🔴 Listening (Hindi & English)';
+      if (promptQuote) promptQuote.textContent = isHi ? '“साफ़ आवाज़ में अपनी बात बोलिए...”' : '“Speak clearly, I am listening...”';
+      if (activeTray) activeTray.classList.remove('hidden');
+      if (speakingTray) speakingTray.classList.add('hidden');
+      if (micRing) micRing.style.display = 'block';
+      micBtn.setAttribute('aria-pressed', 'true');
+      break;
+
+    case 'thinking':
+      if (micEmoji) micEmoji.textContent = '⏳';
+      if (micLabel) micLabel.textContent = isHi ? 'समझ रहा हूँ...' : 'Understanding...';
+      if (stateLabel) stateLabel.textContent = isHi ? '⏳ समझ रहा हूँ...' : '⏳ Understanding...';
+      if (promptQuote) promptQuote.textContent = isHi ? '“कृपया एक पल प्रतीक्षा करें...”' : '“Understanding your request...”';
+      if (activeTray) activeTray.classList.add('hidden');
+      if (speakingTray) speakingTray.classList.add('hidden');
+      if (micRing) micRing.style.display = 'none';
+      micBtn.setAttribute('aria-pressed', 'false');
+      break;
+
+    case 'speaking':
+      if (micEmoji) micEmoji.textContent = '🔊';
+      if (micLabel) micLabel.textContent = isHi ? 'बोल रहा हूँ...' : 'Speaking...';
+      if (stateLabel) stateLabel.textContent = isHi ? '🔊 बोलकर बता रहा हूँ' : '🔊 Speaking aloud';
+      if (promptQuote) promptQuote.textContent = isHi ? '“SINI बोलकर उत्तर दे रहा है”' : '“SINI is speaking aloud”';
+      if (activeTray) activeTray.classList.add('hidden');
+      if (speakingTray) speakingTray.classList.remove('hidden');
+      if (micRing) micRing.style.display = 'none';
+      micBtn.setAttribute('aria-pressed', 'false');
+      break;
+
+    case 'idle':
+    default:
+      if (micEmoji) micEmoji.textContent = '🎙️';
+      if (micLabel) micLabel.textContent = isHi ? 'बोलने के लिए दबाएं' : 'Tap & Speak';
+      if (stateLabel) stateLabel.textContent = isHi ? '🎙️ सुनने के लिए तैयार (हिंदी / English)' : '🎙️ Ready to listen (Hindi & English)';
+      if (promptQuote) promptQuote.textContent = isHi ? '“आप हिंदी या अंग्रेज़ी में आसानी से बोल सकते हैं”' : '“You can speak naturally in Hindi or English”';
+      if (activeTray) activeTray.classList.add('hidden');
+      if (speakingTray) speakingTray.classList.add('hidden');
+      if (micRing) micRing.style.display = 'none';
+      micBtn.setAttribute('aria-pressed', 'false');
+      break;
+  }
+}
+
+/**
+ * Updates dynamic greeting based on time of day (Morning/Afternoon/Evening/Night).
+ */
+function updateGreeting(lang = getLang()) {
+  const hour = new Date().getHours();
+  const isHi = lang === 'hi';
+  let greetingText = '';
+  let subText = '';
+
+  if (hour >= 5 && hour < 12) {
+    greetingText = isHi ? 'शुभ प्रभात 👋' : 'Good Morning 👋';
+  } else if (hour >= 12 && hour < 17) {
+    greetingText = isHi ? 'शुभ दोपहर 👋' : 'Good Afternoon 👋';
+  } else if (hour >= 17 && hour < 21) {
+    greetingText = isHi ? 'शुभ संध्या 👋' : 'Good Evening 👋';
+  } else {
+    greetingText = isHi ? 'शुभ रात्रि 🌙' : 'Good Night 🌙';
+  }
+
+  subText = isHi ? 'आज मैं आपकी क्या सहायता करूँ?' : 'How can I help you today?';
+
+  const titleEl = document.getElementById('hero-greeting-title');
+  const subEl   = document.getElementById('hero-greeting-sub');
+  if (titleEl) titleEl.textContent = greetingText;
+  if (subEl)   subEl.textContent   = subText;
+}
 
 function wireInputArea() {
   const input    = document.getElementById('user-input');
   const sendBtn  = document.getElementById('send-btn');
-  const micBtn   = document.getElementById('mic-btn');
+  const heroMic  = document.getElementById('hero-mic-btn');
   const ttsBtn   = document.getElementById('tts-toggle');
 
+  // Hero Mic Button Click
+  heroMic?.addEventListener('click', () => {
+    if (currentHeroState === 'speaking') {
+      stopSpeaking();
+      setHeroMicState('idle');
+      return;
+    }
+    toggleRecording();
+  });
+
+  // Hero Active Tray Controls
+  document.getElementById('hero-done-btn')?.addEventListener('click', () => {
+    finishRecording();
+  });
+
+  document.getElementById('hero-cancel-btn')?.addEventListener('click', () => {
+    cancelRecording();
+    setHeroMicState('idle');
+    const previewEl = document.getElementById('hero-transcript-text');
+    if (previewEl) {
+      previewEl.textContent = getLang() === 'hi' ? 'बोलें, आपकी आवाज़ यहाँ दिखेगी...' : 'Speak now, words will appear here...';
+    }
+    showToast(getLang() === 'hi' ? 'आवाज़ इनपुट रद्द किया' : 'Voice input cancelled', 'info', 1500);
+  });
+
+  // Hero Speaking Tray Control
+  document.getElementById('hero-stop-speak-btn')?.addEventListener('click', () => {
+    stopSpeaking();
+    setHeroMicState('idle');
+  });
+
+  // Text send
   sendBtn?.addEventListener('click', handleSend);
 
   input?.addEventListener('keydown', (e) => {
@@ -109,29 +255,23 @@ function wireInputArea() {
 
   input?.addEventListener('input', () => autoResizeTextarea(input));
 
-  // Large mic button
-  micBtn?.addEventListener('click', () => {
-    toggleRecording();
-  });
-
-  // Voice banner actions
-  document.getElementById('voice-stop-btn')?.addEventListener('click', () => {
-    toggleRecording();
-  });
-
-  document.getElementById('voice-cancel-btn')?.addEventListener('click', () => {
-    cancelRecording();
-    const inputEl = document.getElementById('user-input');
-    if (inputEl) inputEl.value = '';
-    showToast(getLang() === 'hi' ? 'आवाज़ इनपुट रद्द किया' : 'Voice input cancelled', 'info', 1500);
-  });
-
   ttsBtn?.addEventListener('click', () => {
     const newVal = !Storage.getTtsEnabled();
     Storage.setTtsEnabled(newVal);
     updateTtsBtn();
     showToast(newVal ? (getLang() === 'hi' ? '🔊 बोलकर सुनाना: चालू' : '🔊 Read aloud: ON')
                      : (getLang() === 'hi' ? '🔇 बोलकर सुनाना: बंद' : '🔇 Read aloud: OFF'), 'info', 2000);
+  });
+
+  // Listen to TTS start and end events for Hero Mic state
+  window.addEventListener('sini:tts-start', () => {
+    setHeroMicState('speaking');
+  });
+
+  window.addEventListener('sini:tts-end', () => {
+    if (currentHeroState === 'speaking') {
+      setHeroMicState('idle');
+    }
   });
 }
 
@@ -140,7 +280,13 @@ function handleSend() {
   const text  = input?.value?.trim();
   if (!text) return;
 
-  sendMessage(text);
+  setHeroMicState('thinking');
+  sendMessage(text).finally(() => {
+    if (currentHeroState === 'thinking') {
+      setHeroMicState('idle');
+    }
+  });
+
   if (input) {
     input.value = '';
     input.style.height = '';
@@ -148,7 +294,7 @@ function handleSend() {
 }
 
 function handleVoiceInterim(interim) {
-  const preview = document.getElementById('voice-transcript-preview');
+  const preview = document.getElementById('hero-transcript-text');
   if (preview && interim) {
     preview.textContent = interim;
   }
@@ -160,7 +306,7 @@ function handleVoiceInterim(interim) {
 }
 
 function handleVoiceResult(transcript) {
-  const preview = document.getElementById('voice-transcript-preview');
+  const preview = document.getElementById('hero-transcript-text');
   if (preview) {
     preview.textContent = transcript;
   }
@@ -169,54 +315,33 @@ function handleVoiceResult(transcript) {
   if (input) {
     input.value = transcript;
     autoResizeTextarea(input);
-    input.focus();
   }
 
-  // Automatically submit voice message after brief confirmation pause
+  // Submit voice message
   if (transcript) {
+    setHeroMicState('thinking');
     setTimeout(() => {
-      handleSend();
+      sendMessage(transcript).finally(() => {
+        if (currentHeroState === 'thinking') {
+          setHeroMicState('idle');
+        }
+      });
+      if (input) input.value = '';
     }, 450);
   }
 }
 
 function handleRecordingStart() {
-  const btn = document.getElementById('mic-btn');
-  if (btn) {
-    btn.classList.add('recording');
-    btn.setAttribute('aria-label', t('input.mic.recording'));
-    btn.setAttribute('aria-pressed', 'true');
-  }
-
-  // Show active voice banner
-  const banner = document.getElementById('voice-banner');
-  if (banner) {
-    banner.classList.remove('hidden');
-    const titleEl = document.getElementById('voice-status-title');
-    if (titleEl) {
-      titleEl.textContent = getLang() === 'hi' ? '🎙️ हिंदी में सुन रहा हूँ... बोलिए' : '🎙️ Listening... Speak now';
-    }
-    const previewEl = document.getElementById('voice-transcript-preview');
-    if (previewEl) {
-      previewEl.textContent = getLang() === 'hi' ? 'बोलें, आपकी आवाज़ यहाँ दिखेगी...' : 'Speak now, words will appear here...';
-    }
+  setHeroMicState('listening');
+  const previewEl = document.getElementById('hero-transcript-text');
+  if (previewEl) {
+    previewEl.textContent = getLang() === 'hi' ? 'बोलें, आपकी आवाज़ यहाँ दिखेगी...' : 'Speak now, words will appear here...';
   }
 }
 
 function handleRecordingEnd() {
-  const btn = document.getElementById('mic-btn');
-  if (btn) {
-    btn.classList.remove('recording');
-    btn.setAttribute('aria-label', t('input.mic'));
-    btn.setAttribute('aria-pressed', 'false');
-  }
-
-  // Hide active voice banner after short delay
-  const banner = document.getElementById('voice-banner');
-  if (banner) {
-    setTimeout(() => {
-      banner.classList.add('hidden');
-    }, 600);
+  if (currentHeroState === 'listening') {
+    setHeroMicState('idle');
   }
 }
 
@@ -232,26 +357,32 @@ function updateTtsBtn() {
 
 // ── Header & Language Switcher ────────────────────────────────────────────────
 
+export function changeLanguage(nextLang) {
+  Storage.setLanguage(nextLang);
+  setLang(nextLang);
+  applyTranslations();
+  updateLangButton(nextLang);
+  switchSttLanguage(nextLang);
+
+  const msg = nextLang === 'hi'
+    ? '🇮🇳 हिन्दी भाषा चुनी गई ✓ (Hindi Voice & Text Active)'
+    : '🇬🇧 Switched to English ✓ (English Voice & Text Active)';
+  showToast(msg, 'success', 2500);
+  announce(nextLang === 'hi' ? 'भाषा हिंदी में बदली गई' : 'Language changed to English');
+}
+
 function wireHeader() {
-  // Simple Hindi ↔ English toggle pill
+  // Dual Segmented Language buttons (Top Header)
+  document.getElementById('lang-btn-hi')?.addEventListener('click', () => changeLanguage('hi'));
+  document.getElementById('lang-btn-en')?.addEventListener('click', () => changeLanguage('en'));
+
+  // Persistent Bottom Language Bar Pills
+  document.getElementById('bottom-lang-hi')?.addEventListener('click', () => changeLanguage('hi'));
+  document.getElementById('bottom-lang-en')?.addEventListener('click', () => changeLanguage('en'));
+
+  // Compat toggle pill
   document.getElementById('lang-toggle')?.addEventListener('click', () => {
-    const nextLang = getLang() === 'en' ? 'hi' : 'en';
-    Storage.setLanguage(nextLang);
-    setLang(nextLang);
-    applyTranslations();
-    updateLangButton(nextLang);
-
-    const msg = nextLang === 'hi'
-      ? 'हिन्दी भाषा चुनी गई ✓ (Hindi Voice & Text Active)'
-      : 'Switched to English ✓ (English Voice & Text Active)';
-    showToast(msg, 'success', 2500);
-    announce(nextLang === 'hi' ? 'भाषा हिंदी में बदली गई' : 'Language changed to English');
-
-    // Update voice banner text if visible
-    const titleEl = document.getElementById('voice-status-title');
-    if (titleEl) {
-      titleEl.textContent = nextLang === 'hi' ? '🎙️ हिंदी में सुन रहा हूँ... बोलिए' : '🎙️ Listening... Speak now';
-    }
+    changeLanguage(getLang() === 'en' ? 'hi' : 'en');
   });
 
   // Listen for auto-detected language change from voice or text
@@ -259,14 +390,11 @@ function wireHeader() {
     const lang = e.detail?.lang;
     if (lang) {
       updateLangButton(lang);
-      const titleEl = document.getElementById('voice-status-title');
-      if (titleEl) {
-        titleEl.textContent = lang === 'hi' ? '🎙️ हिंदी में सुन रहा हूँ... बोलिए' : '🎙️ Listening... Speak now';
-      }
     }
   });
 
   updateLangButton(getLang());
+  updateGreeting(getLang());
 
   // Settings button
   document.getElementById('settings-btn')?.addEventListener('click', openSettingsModal);
@@ -281,22 +409,31 @@ function wireHeader() {
 }
 
 function updateLangButton(lang) {
-  const btn = document.getElementById('lang-toggle');
-  const flagEl = document.getElementById('lang-flag-indicator');
-  const labelEl = document.getElementById('lang-current-label');
-  if (!btn) return;
+  const isHi = lang === 'hi';
 
-  if (lang === 'hi') {
-    if (flagEl)  flagEl.textContent = '🇮🇳';
-    if (labelEl) labelEl.textContent = 'हिन्दी | EN';
-    btn.setAttribute('aria-label', 'Active: Hindi. Tap to switch to English');
-    btn.title = 'Active: Hindi / सक्रिय: हिंदी (Tap to switch to English)';
-  } else {
-    if (flagEl)  flagEl.textContent = '🇬🇧';
-    if (labelEl) labelEl.textContent = 'English | हि';
-    btn.setAttribute('aria-label', 'Active: English. Tap to switch to Hindi');
-    btn.title = 'Active: English / सक्रिय: अंग्रेज़ी (Tap to switch to Hindi)';
+  // Top Header buttons
+  const btnHi = document.getElementById('lang-btn-hi');
+  const btnEn = document.getElementById('lang-btn-en');
+  if (btnHi && btnEn) {
+    btnHi.classList.toggle('active', isHi);
+    btnHi.setAttribute('aria-pressed', String(isHi));
+    btnEn.classList.toggle('active', !isHi);
+    btnEn.setAttribute('aria-pressed', String(!isHi));
   }
+
+  // Bottom Persistent Bar pills
+  const bottomHi = document.getElementById('bottom-lang-hi');
+  const bottomEn = document.getElementById('bottom-lang-en');
+  if (bottomHi && bottomEn) {
+    bottomHi.classList.toggle('active', isHi);
+    bottomHi.setAttribute('aria-pressed', String(isHi));
+    bottomEn.classList.toggle('active', !isHi);
+    bottomEn.setAttribute('aria-pressed', String(!isHi));
+  }
+
+  // Update greeting and hero prompt in new language
+  updateGreeting(lang);
+  setHeroMicState(currentHeroState);
 }
 
 // ── Settings Modal ────────────────────────────────────────────────────────────
@@ -454,7 +591,11 @@ function openSetupModal() {
   overlay.classList.remove('hidden');
 
   const releaseTrap = trapFocus(overlay.querySelector('.modal'));
-  setupCleanup = [releaseTrap];
+  const releaseEsc  = onEscapeClose(overlay, () => {
+    Storage.setCompletedSetup(true);
+    closeSetupModal();
+  });
+  setupCleanup = [releaseTrap, releaseEsc];
 }
 
 function closeSetupModal() {
@@ -464,6 +605,12 @@ function closeSetupModal() {
 }
 
 function wireSetupModal() {
+  // Close button
+  document.getElementById('setup-close-btn')?.addEventListener('click', () => {
+    Storage.setCompletedSetup(true);
+    closeSetupModal();
+  });
+
   // Start with API key
   document.getElementById('setup-start-btn')?.addEventListener('click', () => {
     const keyInput = document.getElementById('setup-api-key');

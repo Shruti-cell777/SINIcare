@@ -73,9 +73,6 @@ const QUICK_ACTIONS = [
  * Wires up click and keyboard handlers.
  */
 export function initQuickActions() {
-  const grid = document.getElementById('quick-actions-grid');
-  if (!grid) return;
-
   QUICK_ACTIONS.forEach(action => {
     const btn = document.getElementById(action.id);
     if (!btn) return;

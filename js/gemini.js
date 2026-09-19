@@ -25,24 +25,35 @@ const RETRY_DELAY   = 1200;  // ms
 
 // ── System Prompts ───────────────────────────────────────────────────────────
 
-const SINI_SYSTEM_PROMPT = `You are SINI (Senior's Intelligent Navigator & Information companion), a warm, loving, patient, and deeply respectful digital helper designed specifically for senior citizens in India.
+const SINI_SYSTEM_PROMPT = `You are SINI (Senior's Intelligent Navigator & Information companion), a warm, patient, and deeply respectful digital helper designed specifically for senior citizens in India.
 
-Core Voice & Language Rules:
-- Seamlessly understand natural Hindi (Devanagari or Romanized/Hinglish) and English. Indian seniors often speak in mixed sentences like "Mera phone hang ho raha hai", "WhatsApp par photo kaise bheju?", or "Bijli ka bill online kaise bhare?". Understand all of these naturally!
-- When responding in Hindi:
-  * Use simple, conversational, everyday Hindustani in pure DEVANAGARI script (आम बोलचाल की सरल देवनागरी हिंदी).
-  * NEVER write Hindi in English/Latin letters (NO Hinglish in the output).
-  * Use respectful, caring words ("नमस्ते जी", "आप बिल्कुल चिंता न करें", "जी दादाजी / दादीजी / अंकल / आंटी").
-  * NEVER use complex, rare, or Sanskritized words. For example: say "पासवर्ड" instead of "कूटशब्द", say "बैंक खाता" instead of "लेखा", say "इंटरनेट" instead of "अंतरजाल".
-  * Keep sentences short, comforting, and clear so Text-to-Speech (आवाज़) speaks smoothly and naturally.
-- When responding in English:
-  * Use warm, gentle, simple words. Explain any tech concept with everyday analogies.
+Senior-First Communication Rule (CRITICAL):
+Every response MUST be ultra-simple, clear, and structured into two easy sections:
 
-Senior-First Communication:
-- Give numbered steps for actions (1, 2, 3), one clear action per step.
-- Never make the senior feel embarrassed or confused. Be encouraging and patient.
-- Keep total response under 160 words so it does not overwhelm and is pleasant to listen to.
-- Always reassure them on safety: never share OTP, passwords, or bank details with anyone.`;
+In English:
+**Here’s what this means:**
+[1-2 very simple sentences in plain language without any legal or technical jargon]
+
+**What you should do:**
+1. [First simple action step]
+2. [Second action step]
+3. [Third action step if needed]
+
+In Hindi (pure Devanagari script):
+**यहाँ इसका मतलब है:**
+[1-2 बहुत सरल वाक्य आम बोलचाल में]
+
+**आपको क्या करना चाहिए:**
+1. [पहला आसान कदम]
+2. [दूसरा आसान कदम]
+3. [तीसरा आसान कदम]
+
+Safety & Trust Safeguards:
+- If a message asks for bank details, UPI PIN, OTP, CVV, or passwords, ALWAYS start with:
+  🛡️ **Before you continue:** This message is asking you to share sensitive bank details. Never share your OTP or PIN with anyone.
+- If you are ever unsure about a rule or detail, always add:
+  💡 *I'm not completely sure about this. Would you like me to explain further?*
+- Total length under 120 words for pleasant, smooth voice listening.`;
 
 const SCAM_ANALYSIS_PROMPT = `You are a digital safety expert helping senior citizens in India identify scam messages.
 
@@ -86,53 +97,169 @@ function generateDemoResponse(userMessage, targetLang = getLang()) {
   const lower = (userMessage || '').toLowerCase();
 
   if (inHindi) {
-    if (lower.includes('scam') || lower.includes('धोखा') || lower.includes('otp') || lower.includes('सुरक्षित')) {
-      return `नमस्ते जी! डिजिटल सुरक्षा के लिए यह नियम हमेशा याद रखें:
+    // 1. Grocery & Essentials
+    if (lower.includes('grocery') || lower.includes('order') || lower.includes('किराना') || lower.includes('राशन') || lower.includes('दूध') || lower.includes('सब्जी') || lower.includes('सामान') || lower.includes('मंगा')) {
+      return `**यहाँ इसका मतलब है:**
+आप Blinkit से घर बैठे दूध, राशन या सब्ज़ियाँ मँगवा सकते हैं। आपको बाज़ार जाने की ज़रूरत नहीं है।
 
-1. **OTP कभी किसी को न दें**: बैंक कभी भी फोन पर OTP या पासवर्ड नहीं मांगता।
-2. **अंजान लिंक पर न छुएं**: SMS या WhatsApp पर आए किसी अंजान लिंक को न खोलें।
-3. **शंका हो तो परिवार से पूछें**: अगर कोई जल्दी करने को कहे, तो पहले रुकें और अपने परिवार को बताएं।
-
-आप जब चाहें मुझसे किसी भी मैसेज की जांच करवा सकते हैं!`;
+**आपको क्या करना चाहिए:**
+1. नीचे दिए गए **"🛒 राशन मंगाएं"** बटन पर टैप करें।
+2. अपना सामान चुनें और समीक्षा करें।
+3. Blinkit पर खुद सुरक्षित भुगतान करें — SINI कभी आपका PIN या OTP नहीं माँगता।`;
     }
-    if (lower.includes('payment') || lower.includes('पैसे') || lower.includes('पेमेंट') || lower.includes('upi')) {
-      return `नमस्ते जी! ऑनलाइन पेमेंट करते समय बस इन बातों का ध्यान रखें:
 
-1. **पैसे प्राप्त करने के लिए PIN नहीं डालना होता**: अगर कोई कहे कि पैसे पाने के लिए PIN डालें, तो वह धोखा है।
-2. **दुकानदार का नाम जांचें**: QR कोड स्कैन करने के बाद स्क्रीन पर सही नाम देखें।
-3. **अपना UPI PIN किसी को न बताएं**।
+    // 2. Health, Medicine, Doctor
+    if (lower.includes('दवाई') || lower.includes('दवा') || lower.includes('डॉक्टर') || lower.includes('सिरदर्द') || lower.includes('तबीयत') || lower.includes('बीमार') || lower.includes('दर्द') || lower.includes('medicine') || lower.includes('health') || lower.includes('doctor')) {
+      return `**यहाँ इसका मतलब है:**
+आपकी सेहत सबसे महत्वपूर्ण है। जब भी तबीयत अस्वस्थ लगे, तुरंत सावधानी बरतना ज़रूरी है।
 
-क्या आप किसी खास ऐप (जैसे Google Pay या PhonePe) के बारे में जानना चाहते हैं?`;
+**आपको क्या करना चाहिए:**
+1. थोड़ा गुनगुना पानी पिएं और आरामदायक जगह पर विश्राम करें।
+2. डॉक्टर द्वारा बताई गई दवाई समय पर लें।
+3. यदि तकलीफ़ ज़्यादा हो, तो तुरंत अपने परिवार के सदस्य या डॉक्टर को फ़ोन करें।`;
     }
-    return `नमस्ते जी! मैंने आपकी बात सुन ली है।
 
-मैं आपका डिजिटल साथी हूँ। आप मुझसे कोई भी SMS या मैसेज जांचने को कह सकते हैं, फॉर्म भरने में मदद ले सकते हैं, या कोई भी सवाल पूछ सकते हैं।
+    // 3. Greetings & SINI identity
+    if (lower.includes('namaste') || lower.includes('नमस्ते') || lower.includes('प्रणाम') || lower.includes('कौन हो') || lower.includes('कौन हैं') || lower.includes('kaise ho') || lower.includes('कैसे हो') || lower.includes('hello') || lower.includes('hi')) {
+      return `**यहाँ इसका मतलब है:**
+नमस्ते जी! मैं SINI हूँ — वरिष्ठ नागरिकों के लिए बना आपका अपना सरल डिजिटल साथी।
 
-बताइए, आज मैं आपकी क्या मदद करूँ?`;
+**आपको क्या करना चाहिए:**
+1. बड़े माइक बटन पर टैप करके अपनी बात बोलें।
+2. आप मुझसे कोई भी मैसेज जाँचना, राशन मंगाना या रिमाइंडर लगाना कह सकते हैं।`;
+    }
+
+    // 4. Scams, Fraud, Safety
+    if (lower.includes('scam') || lower.includes('धोखा') || lower.includes('otp') || lower.includes('सुरक्षित') || lower.includes('संदिग्ध') || lower.includes('लिंक') || lower.includes('link') || lower.includes('कागज़') || lower.includes('दस्तावेज़')) {
+      return `**यहाँ इसका मतलब है:**
+फ़ोन पर आने वाले कई मैसेज या लिंक धोखेबाज़ी (स्कैम) हो सकते हैं, जिनका मकसद पैसे चुराना होता है।
+
+**आपको क्या करना चाहिए:**
+1. अपना OTP, बैंक पासवर्ड या UPI PIN किसी को न बताएं।
+2. अंजान नंबर से आए किसी भी लिंक पर कभी क्लिक न करें।
+3. संदेह होने पर नीचे दिए गए **"🛡️ स्कैम चेक करें"** पर टैप करें या परिवार से पूछें।`;
+    }
+
+    // 5. Payment, UPI, Bank
+    if (lower.includes('payment') || lower.includes('पैसे') || lower.includes('पेमेंट') || lower.includes('upi') || lower.includes('bank') || lower.includes('बैंक') || lower.includes('खाता')) {
+      return `**यहाँ इसका मतलब है:**
+डिजिटल पेमेंट सुरक्षित है, बशर्ते आप कुछ बुनियादी सुरक्षा नियमों का पालन करें।
+
+**आपको क्या करना चाहिए:**
+1. पैसे प्राप्त करने के लिए कभी UPI PIN दर्ज न करें।
+2. पैसे भेजने से पहले दुकानदार का नाम स्क्रीन पर ज़रूर जाँचें।
+3. बैंक से कॉल करने का दावा करने वाले किसी भी व्यक्ति को OTP न दें।`;
+    }
+
+    // 6. Phone, WhatsApp, Internet
+    if (lower.includes('phone') || lower.includes('फ़ोन') || lower.includes('फोन') || lower.includes('whatsapp') || lower.includes('व्हाट्सएप') || lower.includes('फोटो') || lower.includes('internet') || lower.includes('धीमा') || lower.includes('slow') || lower.includes('hang')) {
+      return `**यहाँ इसका मतलब है:**
+स्मार्टफ़ोन बहुत सरल है और कुछ आसान चरणों से इसे ठीक से चलाया जा सकता है।
+
+**आपको क्या करना चाहिए:**
+1. यदि फ़ोन धीमा चल रहा है, तो पावर बटन दबाकर 'Restart' करें।
+2. व्हाट्सएप पर फ़ोटो भेजने के लिए चैट में पेपरक्लिप (📎) आइकन दबाएं।
+3. आवाज़ बढ़ाने के लिए फ़ोन के किनारे वाला ऊपरी बटन दबाएं।`;
+    }
+
+    // 7. Bills & Pension
+    if (lower.includes('बिजली') || lower.includes('बिल') || lower.includes('bill') || lower.includes('पेंशन') || lower.includes('pension')) {
+      return `**यहाँ इसका मतलब है:**
+बिजली बिल का भुगतान और पेंशन जीवन प्रमाण पत्र अब बिना लाइन में लगे घर से हो सकते हैं।
+
+**आपको क्या करना चाहिए:**
+1. बिजली बिल के लिए अपने उपभोक्ता नंबर (CA No.) की रसीद साथ रखें।
+2. पेंशन के लिए जीवन प्रमाण पोर्टल या नज़दीकी बैंक शाखा से मदद लें।
+3. बिल भुगतान में सहायता के लिए अपने परिवार के किसी सदस्य को साथ रखें।`;
+    }
+
+    // 8. Reminders
+    if (lower.includes('याद') || lower.includes('रिमाइंडर') || lower.includes('reminder') || lower.includes('अलार्म')) {
+      return `**यहाँ इसका मतलब है:**
+मैं आपके लिए दवाई, डॉक्टर से मिलने या टहलने जाने का अलार्म और रिमाइंडर लगा सकता हूँ।
+
+**आपको क्या करना चाहिए:**
+1. नीचे दिए गए **"📅 मेरे रिमाइंडर"** कार्ड पर टैप करें।
+2. अपना काम और समय बताएं, जैसे: शाम 6 बजे दवाई।
+3. समय होने पर मैं आपको बोलकर याद दिला दूँगा।`;
+    }
+
+    // Default warm Hindi conversational response
+    return `**यहाँ इसका मतलब है:**
+मैंने आपकी बात अच्छी तरह सुन ली है। मैं आपकी हर डिजिटल काम में मदद करने के लिए तैयार हूँ।
+
+**आपको क्या करना चाहिए:**
+1. आप ऊपर दिए गए बड़े माइक बटन को दबाकर कुछ भी पूछ सकते हैं।
+2. या नीचे दिए गए 6 कार्ड में से अपनी पसंद का काम चुन सकते हैं।`;
+
   } else {
-    if (lower.includes('payment') || lower.includes('money') || lower.includes('upi') || lower.includes('bank')) {
-      return `Hello! Here is how to make online payments safely:
+    // English responses
+    if (lower.includes('grocery') || lower.includes('order') || lower.includes('milk') || lower.includes('bread') || lower.includes('vegetable') || lower.includes('blinkit')) {
+      return `**Here’s what this means:**
+You can safely order groceries, milk, and household essentials directly from Blinkit without leaving home.
 
-1. **Never enter your UPI PIN to receive money**: PIN is only used when YOU are sending money.
-2. **Verify the receiver's name**: Always double-check the shopkeeper or person's name on your screen before paying.
-3. **Never share OTPs**: Your bank will never call asking for your OTP or password.
-
-Would you like step-by-step help with Google Pay, PhonePe, or Paytm?`;
+**What you should do:**
+1. Tap the **"🛒 Order Groceries"** card below.
+2. Select your items and review the simple summary.
+3. Complete payment directly on Blinkit — SINI will never ask for your UPI PIN or OTP.`;
     }
-    if (lower.includes('scam') || lower.includes('suspicious') || lower.includes('safe') || lower.includes('otp')) {
-      return `Hello! Here are 3 simple safety rules for your peace of mind:
 
-1. **Keep your OTP secret**: Never share the 6-digit code sent to your phone with anyone.
-2. **Don't click unknown links**: If a message claims your account or electricity will be blocked, don't tap the link.
-3. **When in doubt, ask family**: Take a moment and call a trusted family member.
+    if (lower.includes('medicine') || lower.includes('health') || lower.includes('doctor') || lower.includes('headache') || lower.includes('pain') || lower.includes('sick')) {
+      return `**Here’s what this means:**
+Your health is the highest priority. Taking rest and timely care is essential whenever you feel unwell.
 
-I am always here to check any message for you!`;
+**What you should do:**
+1. Drink a warm glass of water and rest in a comfortable chair.
+2. Take your prescribed medicines if it is time.
+3. If the discomfort continues, call your doctor or family member immediately.`;
     }
-    return `Hello! I heard you loud and clear.
 
-I'm SINI, your patient digital companion. You can speak or type anything you need help with — checking messages, understanding bills, setting reminders, or using websites.
+    if (lower.includes('payment') || lower.includes('money') || lower.includes('upi') || lower.includes('bank') || lower.includes('google pay')) {
+      return `**Here’s what this means:**
+Online banking and UPI are safe as long as you follow key safety safeguards.
 
-How can I help you today?`;
+**What you should do:**
+1. Never enter your UPI PIN to receive money.
+2. Double-check the shopkeeper's real name on your screen before sending money.
+3. Never share your bank OTP or card details with anyone over a call.`;
+    }
+
+    if (lower.includes('scam') || lower.includes('suspicious') || lower.includes('safe') || lower.includes('otp') || lower.includes('link') || lower.includes('document')) {
+      return `**Here’s what this means:**
+Scammers send urgent SMS messages or fake links claiming your account or electricity will be blocked.
+
+**What you should do:**
+1. Do not tap on any link inside unexpected text messages.
+2. Never share the 6-digit OTP sent to your phone.
+3. Tap **"🛡️ Check for Scam"** below or verify with a trusted family member.`;
+    }
+
+    if (lower.includes('phone') || lower.includes('whatsapp') || lower.includes('slow') || lower.includes('photo')) {
+      return `**Here’s what this means:**
+Smartphones can easily be managed with a few simple, repeatable steps.
+
+**What you should do:**
+1. Hold the power button and tap 'Restart' if your phone feels slow.
+2. Tap the paperclip (📎) icon inside WhatsApp to attach and send photos.
+3. Press the top button on the phone's side to raise the speaker volume.`;
+    }
+
+    if (lower.includes('reminder') || lower.includes('alarm') || lower.includes('medicine time')) {
+      return `**Here’s what this means:**
+SINI can keep track of all your medicine timings and daily appointments so you never miss them.
+
+**What you should do:**
+1. Tap the **"📅 My Reminders"** card below.
+2. Enter your task and time (e.g., 5:00 PM evening walk).
+3. SINI will speak aloud when it is time.`;
+    }
+
+    return `**Here’s what this means:**
+I heard you clearly. I am SINI, your patient digital companion designed to make technology easy.
+
+**What you should do:**
+1. Tap the big central microphone to speak any question naturally.
+2. Or choose one of the 6 quick task cards below to get started.`;
   }
 }
 

@@ -14,6 +14,8 @@ import { appendChatHistory, getChatHistory, clearChatHistory, setLanguage } from
 import { announce, formatTime, formatDate } from './a11y.js';
 import { t, getLang, setLang, applyTranslations, detectLanguage } from './i18n.js';
 import { speak, isHindiText } from './voice.js';
+import { showToast } from './toast.js';
+import { openGrocery } from './features/grocery.js';
 
 /** Dispatches a toast without circular dependency. */
 function dispatchToast(message, type = 'info') {
@@ -131,6 +133,22 @@ export async function sendMessage(rawText) {
     announce('SINI: ' + responseText);
     speak(responseText);
 
+    // Auto-open grocery ordering assistant if requested
+    const lowerMsg = text.toLowerCase();
+    const isGroceryReq = lowerMsg.includes('order grocer') ||
+                         lowerMsg.includes('groceries') ||
+                         lowerMsg.includes('किराना') ||
+                         lowerMsg.includes('राशन') ||
+                         lowerMsg.includes('दूध मंगा') ||
+                         lowerMsg.includes('सामान मंगा') ||
+                         lowerMsg.includes('grocery order');
+
+    if (isGroceryReq) {
+      setTimeout(() => {
+        openGrocery();
+      }, 1500);
+    }
+
   } catch (err) {
     typingEl.remove();
 
@@ -184,6 +202,99 @@ export function clearChat() {
 // ── Bubble rendering ──────────────────────────────────────────────────────────
 
 /**
+ * Formats SINI's response into high-contrast, structured senior-friendly HTML.
+ * Parses "Here's what this means" and "What you should do", adds trust safeguards,
+ * and includes a dedicated prominent listen button.
+ *
+ * @param {string} content
+ * @param {'hi'|'en'} lang
+ * @returns {string}
+ */
+function formatSeniorResponseHtml(content, lang) {
+  const isHi = lang === 'hi' || isHindiText(content);
+  const lower = (content || '').toLowerCase();
+
+  // 1. Trust & Safeguards banner (for sensitive banking/OTP/password context)
+  const isSensitive = lower.includes('otp') || lower.includes('pin') ||
+                      lower.includes('password') || lower.includes('cvv') ||
+                      lower.includes('पासवर्ड') || lower.includes('खाता');
+  let trustHtml = '';
+  if (isSensitive) {
+    const trustTitle = isHi ? '🛡️ आगे बढ़ने से पहले ध्यान दें:' : '🛡️ Before you continue:';
+    const trustDesc  = isHi
+      ? 'अपना OTP, UPI PIN या बैंक पासवर्ड किसी को न बताएं। बैंक या SINI कभी इसे नहीं मांगते।'
+      : 'Never share your OTP, UPI PIN, or bank passwords with anyone. SINI and banks will NEVER ask for them.';
+    trustHtml = `
+      <div class="trust-alert-card" role="alert">
+        <span class="trust-alert-icon">🛡️</span>
+        <div>
+          <div class="trust-alert-title">${trustTitle}</div>
+          <p class="trust-alert-desc">${trustDesc}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Parse structured sections
+  const hiMeaningMarker = '**यहाँ इसका मतलब है:**';
+  const hiActionMarker  = '**आपको क्या करना चाहिए:**';
+  const enMeaningMarker = '**Here’s what this means:**';
+  const enMeaningMarkerAlt = '**Here\'s what this means:**';
+  const enActionMarker  = '**What you should do:**';
+
+  let meaningPart = '';
+  let actionPart  = '';
+
+  if (content.includes(hiMeaningMarker) && content.includes(hiActionMarker)) {
+    const parts = content.split(hiActionMarker);
+    meaningPart = parts[0].replace(hiMeaningMarker, '').trim();
+    actionPart  = (parts[1] || '').trim();
+  } else if ((content.includes(enMeaningMarker) || content.includes(enMeaningMarkerAlt)) && content.includes(enActionMarker)) {
+    const marker = content.includes(enMeaningMarker) ? enMeaningMarker : enMeaningMarkerAlt;
+    const parts = content.split(enActionMarker);
+    meaningPart = parts[0].replace(marker, '').trim();
+    actionPart  = (parts[1] || '').trim();
+  }
+
+  const listenLabel = isHi ? '🔊 इसे पूरा सुनें' : '🔊 Listen to this';
+
+  if (meaningPart && actionPart) {
+    const meaningLabel = isHi ? '💡 यहाँ इसका मतलब है:' : '💡 Here’s what this means:';
+    const actionLabel  = isHi ? '👉 आपको क्या करना चाहिए:' : '👉 What you should do:';
+
+    return `
+      ${trustHtml}
+      <div class="senior-response-card">
+        <div class="senior-block senior-block-meaning">
+          <div class="senior-block-label">${meaningLabel}</div>
+          <div class="senior-block-content">${renderMarkdownSafe(meaningPart)}</div>
+        </div>
+        <div class="senior-block senior-block-action">
+          <div class="senior-block-label">${actionLabel}</div>
+          <div class="senior-block-content">${renderMarkdownSafe(actionPart)}</div>
+        </div>
+        <button type="button" class="senior-listen-btn" aria-label="${listenLabel}">
+          <span>${listenLabel}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  // Fallback if not split
+  return `
+    ${trustHtml}
+    <div class="senior-response-card">
+      <div class="senior-block senior-block-meaning">
+        <div class="senior-block-content">${renderMarkdownSafe(content)}</div>
+      </div>
+      <button type="button" class="senior-listen-btn" aria-label="${listenLabel}">
+        <span>${listenLabel}</span>
+      </button>
+    </div>
+  `;
+}
+
+/**
  * Creates a chat message bubble element.
  *
  * @param {'user'|'model'} role
@@ -217,8 +328,20 @@ function createBubbleElement(role, content, timestamp) {
   bubble.className = `bubble ${isSini ? 'bubble-sini' : 'bubble-user'}`;
 
   if (isSini) {
-    // AI responses get markdown rendering (whitelisted tags only)
-    bubble.innerHTML = renderMarkdownSafe(content);
+    bubble.innerHTML = formatSeniorResponseHtml(content, getLang());
+    // Attach event listener to the prominent senior listen button
+    const listenBtn = bubble.querySelector('.senior-listen-btn');
+    if (listenBtn) {
+      listenBtn.addEventListener('click', () => {
+        speak(content, { force: true });
+        const isHi = getLang() === 'hi' || isHindiText(content);
+        const originalText = listenBtn.innerHTML;
+        listenBtn.innerHTML = `<span>${isHi ? '🔊 बोल रहा हूँ...' : '🔊 Speaking...'}</span>`;
+        setTimeout(() => {
+          listenBtn.innerHTML = originalText;
+        }, 3500);
+      });
+    }
   } else {
     // User input: textContent only (no HTML injection)
     bubble.textContent = content;
@@ -257,23 +380,6 @@ function createBubbleElement(role, content, timestamp) {
   });
 
   actionsEl.appendChild(copyBtn);
-
-  // Speak button (only for SINI messages)
-  if (isSini) {
-    const speakBtn = document.createElement('button');
-    speakBtn.className = 'bubble-action-btn';
-    const isHindi = isHindiText(content) || getLang() === 'hi';
-    const listenLabel = isHindi ? '🔊 सुनें' : '🔊 Listen';
-    const playingLabel = isHindi ? '🔊 बोल रहा हूँ...' : '🔊 Playing...';
-    speakBtn.textContent = listenLabel;
-    speakBtn.setAttribute('aria-label', isHindi ? 'यह संदेश बोलकर सुनाएँ' : 'Read this message aloud');
-    speakBtn.addEventListener('click', () => {
-      speak(content, { force: true });
-      speakBtn.textContent = playingLabel;
-      setTimeout(() => { speakBtn.textContent = listenLabel; }, 3000);
-    });
-    actionsEl.appendChild(speakBtn);
-  }
 
   metaRow.appendChild(actionsEl);
   metaRow.appendChild(timeEl);

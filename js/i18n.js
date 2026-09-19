@@ -377,14 +377,16 @@ export function applyTranslations() {
 export function detectLanguage(text) {
   if (!text || typeof text !== 'string') return null;
 
-  // 1. Direct Devanagari detection (\u0900-\u097F)
+  // 1. Direct Devanagari detection (\u0900-\u097F) -> 100% Hindi
   if (/[\u0900-\u097F]/.test(text)) {
     return 'hi';
   }
 
   const lower = text.toLowerCase().trim();
+  const words = lower.split(/\s+/).map(w => w.replace(/[^\w]/g, '')).filter(Boolean);
+  if (words.length === 0) return null;
 
-  // 2. Common Hindi/Hinglish keywords used in senior conversational queries
+  // 2. Common Hindi/Hinglish conversational keywords
   const hindiKeywords = [
     'namaste', 'namaskar', 'pranam',
     'kya', 'kaise', 'karo', 'karna', 'kijiye', 'batao', 'bataiye',
@@ -395,25 +397,24 @@ export function detectLanguage(text) {
     'paise', 'paisa', 'dhokha', 'bijli', 'dawai', 'dawaii',
     'suno', 'samjhao', 'padho', 'dekh', 'dekho',
     'bhai', 'betaji', 'beta', 'bache', 'dada', 'dadi',
+    'kirana', 'rashan', 'doodh', 'sabji', 'sabzi'
   ];
 
-  const words = lower.split(/\s+/).map(w => w.replace(/[^\w]/g, ''));
-  const matchCount = words.filter(w => hindiKeywords.includes(w)).length;
-
-  if (matchCount >= 1 && (matchCount / words.length >= 0.15 || matchCount >= 2)) {
+  const hindiMatches = words.filter(w => hindiKeywords.includes(w)).length;
+  if (hindiMatches >= 1) {
     return 'hi';
   }
 
-  // 3. Check for English words
-  const englishKeywords = [
-    'hello', 'hi', 'how', 'what', 'where', 'when', 'why', 'who',
-    'help', 'explain', 'scam', 'safe', 'message', 'form', 'bank',
-    'money', 'account', 'verify', 'please', 'tell', 'show', 'remind',
-    'doctor', 'appointment', 'phone', 'bill', 'pay', 'payment', 'is', 'are', 'the'
+  // 3. Clear English structural words / complete phrases
+  const englishStructuralWords = [
+    'the', 'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were',
+    'have', 'has', 'had', 'can', 'could', 'should', 'would', 'will',
+    'what', 'where', 'when', 'why', 'who', 'how', 'which',
+    'please', 'tell', 'help', 'explain', 'order'
   ];
 
-  const engMatch = words.filter(w => englishKeywords.includes(w)).length;
-  if (engMatch >= 1) {
+  const engMatches = words.filter(w => englishStructuralWords.includes(w)).length;
+  if (engMatches >= 2 || (words.length <= 2 && engMatches >= 1 && hindiMatches === 0)) {
     return 'en';
   }
 

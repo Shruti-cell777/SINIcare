@@ -38,11 +38,11 @@
   /* Typography */
   --font-family:        'Nunito', 'Segoe UI', Arial, sans-serif;
   --font-size-base:     20px;
-  --font-size-sm:       17px;
-  --font-size-md:       20px;
-  --font-size-lg:       24px;
-  --font-size-xl:       28px;
-  --font-size-xxl:      36px;
+  --font-size-sm:       18px;
+  --font-size-md:       21px;
+  --font-size-lg:       26px;
+  --font-size-xl:       32px;
+  --font-size-xxl:      40px;
   --font-size-chat:     21px;
 
   --line-height-body:   1.7;
@@ -257,30 +257,20 @@ li { margin-bottom: 0.25em; }
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
+  padding: 24px 20px 100px;
+  gap: 28px;
 }
 
 /* ── Chat area ── */
 #chat-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   scroll-behavior: smooth;
-}
-
-#chat-area::-webkit-scrollbar {
-  width: 6px;
-}
-#chat-area::-webkit-scrollbar-track {
-  background: transparent;
-}
-#chat-area::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-full);
+  width: 100%;
 }
 
 /* ── Input area ── */
