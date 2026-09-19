@@ -4,7 +4,8 @@
   "description": "GenAI-powered digital companion for senior citizens",
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
     "test": "node tests/test-runner.js"
   },
   "keywords": [
