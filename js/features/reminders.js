@@ -135,6 +135,8 @@ function handleDelete(id, text) {
 function renderList() {
   if (!listEl) return;
   const reminders = getReminders();
+
+  // Clear existing content
   listEl.innerHTML = '';
 
   if (reminders.length === 0) {
@@ -145,10 +147,12 @@ function renderList() {
     return;
   }
 
+  // Batch all DOM insertions using a fragment (single reflow)
+  const fragment = document.createDocumentFragment();
   reminders.forEach(r => {
-    const item = renderReminderItem(r);
-    listEl.appendChild(item);
+    fragment.appendChild(renderReminderItem(r));
   });
+  listEl.appendChild(fragment);
 }
 
 /**

@@ -18,10 +18,8 @@ import {
   toggleRecording,
   cancelRecording,
   finishRecording,
-  getIsRecording,
   switchSttLanguage,
   sttSupported,
-  ttsSupported,
   waitForVoices,
   speak,
   stopSpeaking,
@@ -52,10 +50,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 2. Init accessibility live regions
   initLiveRegion();
 
-  // 3. Apply translations to static DOM
+  // 3. Cache hero mic DOM refs for efficient repeated updates
+  cacheHeroRefs();
+
+  // 4. Apply translations to static DOM
   applyTranslations();
 
-  // 4. Init all feature modules
+  // 5. Init all feature modules
   initChat();
   initQuickActions();
   initScamDetector();
@@ -99,6 +100,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
+// ── Cached Hero Mic DOM refs (populated once on DOMContentLoaded) ─────────────
+
+const heroRefs = {
+  micBtn:       null,
+  micEmoji:     null,
+  micLabel:     null,
+  micRing:      null,
+  statePill:    null,
+  stateLabel:   null,
+  promptQuote:  null,
+  activeTray:   null,
+  speakingTray: null,
+};
+
+function cacheHeroRefs() {
+  heroRefs.micBtn      = document.getElementById('hero-mic-btn');
+  heroRefs.micEmoji    = document.getElementById('hero-mic-emoji');
+  heroRefs.micLabel    = document.getElementById('hero-mic-label');
+  heroRefs.micRing     = document.getElementById('hero-mic-ring');
+  heroRefs.statePill   = document.getElementById('hero-state-pill');
+  heroRefs.stateLabel  = document.getElementById('hero-state-label');
+  heroRefs.promptQuote = document.getElementById('hero-prompt-quote');
+  heroRefs.activeTray  = document.getElementById('hero-active-tray');
+  heroRefs.speakingTray = document.getElementById('hero-speaking-tray');
+}
+
 // ── Hero Microphone State Machine & UI Controls ───────────────────────────────
 
 let currentHeroState = 'idle'; // 'idle' | 'listening' | 'thinking' | 'speaking'
@@ -116,15 +143,8 @@ export function setHeroMicState(state) {
   currentHeroState = state;
   const isHi = getLang() === 'hi';
 
-  const micBtn        = document.getElementById('hero-mic-btn');
-  const micEmoji      = document.getElementById('hero-mic-emoji');
-  const micLabel      = document.getElementById('hero-mic-label');
-  const micRing       = document.getElementById('hero-mic-ring');
-  const statePill     = document.getElementById('hero-state-pill');
-  const stateLabel    = document.getElementById('hero-state-label');
-  const promptQuote   = document.getElementById('hero-prompt-quote');
-  const activeTray    = document.getElementById('hero-active-tray');
-  const speakingTray  = document.getElementById('hero-speaking-tray');
+  const { micBtn, micEmoji, micLabel, micRing, statePill, stateLabel,
+          promptQuote, activeTray, speakingTray } = heroRefs;
 
   if (!micBtn) return;
 

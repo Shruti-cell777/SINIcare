@@ -15,6 +15,7 @@ import { getLang } from '../i18n.js';
 import { buildBlinkitUrl } from '../gemini.js';
 import { showToast } from '../toast.js';
 import { trapFocus, onEscapeClose } from '../a11y.js';
+import { escapeHtml } from '../security.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -140,13 +141,14 @@ function renderAskItem(body, hi) {
 // ── Step: Ask quantity & brand ────────────────────────────────────────────────
 
 function renderAskQty(body, hi) {
+  const safeItem = escapeHtml(groceryState.item);
   body.innerHTML = `
     <div class="grocery-step">
       <div class="grocery-step-icon" aria-hidden="true">📦</div>
       <h3 class="grocery-step-title">
         ${hi
-          ? `"${groceryState.item}" — कितना चाहिए?`
-          : `"${groceryState.item}" — How much do you need?`}
+          ? `"${safeItem}" — कितना चाहिए?`
+          : `"${safeItem}" — How much do you need?`}
       </h3>
 
       <div class="form-group" style="margin-top:16px;">
@@ -215,8 +217,11 @@ function renderAskQty(body, hi) {
 
 function renderConfirm(body, hi) {
   const { item, qty, brand } = groceryState;
-  const brandLine = brand
-    ? (hi ? `<li><strong>ब्रांड:</strong> ${brand}</li>` : `<li><strong>Brand:</strong> ${brand}</li>`)
+  const safeItem  = escapeHtml(item);
+  const safeQty   = escapeHtml(qty);
+  const safeBrand = escapeHtml(brand);
+  const brandLine = safeBrand
+    ? (hi ? `<li><strong>ब्रांड:</strong> ${safeBrand}</li>` : `<li><strong>Brand:</strong> ${safeBrand}</li>`)
     : '';
 
   const summaryLabel = hi ? 'आपका ऑर्डर सारांश' : 'Your Order Summary';
@@ -233,8 +238,8 @@ function renderConfirm(body, hi) {
       <div class="grocery-summary-box">
         <div class="grocery-summary-title">${summaryLabel}</div>
         <ul class="grocery-summary-list">
-          <li><strong>${itemLabel}:</strong> ${item}</li>
-          <li><strong>${qtyLabel}:</strong> ${qty}</li>
+          <li><strong>${itemLabel}:</strong> ${safeItem}</li>
+          <li><strong>${qtyLabel}:</strong> ${safeQty}</li>
           ${brandLine}
         </ul>
       </div>
@@ -285,6 +290,8 @@ function renderConfirm(body, hi) {
 
 function renderDone(body, hi) {
   const { item, qty } = groceryState;
+  const safeItem = escapeHtml(item);
+  const safeQty  = escapeHtml(qty);
   body.innerHTML = `
     <div class="grocery-step grocery-done-step">
       <div class="grocery-step-icon" aria-hidden="true">🎉</div>
@@ -293,8 +300,8 @@ function renderDone(body, hi) {
       </h3>
       <p class="grocery-step-hint">
         ${hi
-          ? `अब Blinkit पर <strong>${item}</strong> (${qty}) ढूंढें, चुनें, और खुद भुगतान करें।`
-          : `Now find <strong>${item}</strong> (${qty}) on Blinkit, select it, and complete the payment yourself.`}
+          ? `अब Blinkit पर <strong>${safeItem}</strong> (${safeQty}) ढूंढें, चुनें, और खुद भुगतान करें।`
+          : `Now find <strong>${safeItem}</strong> (${safeQty}) on Blinkit, select it, and complete the payment yourself.`}
       </p>
 
       <div class="grocery-steps-guide">

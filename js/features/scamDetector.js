@@ -8,12 +8,11 @@
 
 'use strict';
 
-import { analyzeScam } from '../gemini.js';
+import { analyzeScam, hasApiKey } from '../gemini.js';
 import { quickScamScan } from '../security.js';
 import { t, getLang } from '../i18n.js';
 import { announce, trapFocus, onEscapeClose } from '../a11y.js';
-import { showToast, showToast as dispatchToast } from '../toast.js';
-import { hasApiKey } from '../gemini.js';
+import { showToast } from '../toast.js';
 
 let panelEl      = null;
 let textareaEl   = null;
@@ -43,7 +42,7 @@ export function openScamDetector() {
   if (!panelEl) return;
 
   if (!hasApiKey()) {
-    dispatchToast(t('settings.api.required'), 'warning');
+    showToast(t('settings.api.required'), 'warning');
     return;
   }
 
@@ -76,7 +75,7 @@ async function handleAnalyze() {
   const text = textareaEl?.value?.trim();
 
   if (!text) {
-    dispatchToast(t('scam.empty'), 'warning');
+    showToast(t('scam.empty'), 'warning');
     textareaEl?.focus();
     return;
   }
@@ -104,7 +103,7 @@ async function handleAnalyze() {
         ⚠️ ${err.message ?? t('error.generic')}
       </div>`;
     }
-    dispatchToast(err.message ?? t('error.generic'), 'error');
+    showToast(err.message ?? t('error.generic'), 'error');
   } finally {
     setLoading(false);
   }

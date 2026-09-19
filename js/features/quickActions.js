@@ -9,7 +9,7 @@
 'use strict';
 
 import { t, getLang } from '../i18n.js';
-import { sendMessage, injectSiniMessage } from '../chat.js';
+import { injectSiniMessage } from '../chat.js';
 import { openScamDetector } from './scamDetector.js';
 import { openSimplifier } from './simplifier.js';
 import { openReminders } from './reminders.js';
