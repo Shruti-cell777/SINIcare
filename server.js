@@ -14,7 +14,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
-const ROOT = __dirname;
+const ROOT = fs.existsSync(path.join(__dirname, 'index.html'))
+  ? __dirname
+  : process.cwd();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -34,11 +36,16 @@ const MIME_TYPES = {
 const server = http.createServer((req, res) => {
   // Parse URL to strip query strings / hash
   let reqPath = req.url.split('?')[0];
-  if (reqPath === '/') reqPath = '/index.html';
+  if (reqPath === '/' || !reqPath) reqPath = '/index.html';
 
   // Prevent directory traversal
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
   let filePath = path.join(ROOT, safePath);
+
+  // Fallback to process.cwd() if not found in __dirname
+  if (!fs.existsSync(filePath) && fs.existsSync(path.join(process.cwd(), safePath))) {
+    filePath = path.join(process.cwd(), safePath);
+  }
 
   fs.stat(filePath, (err, stats) => {
     if (err) {
