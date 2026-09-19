@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SINIcare — Test Suite</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f5f3ef;
+      color: #1a1a2e;
+      padding: 32px 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header {
+      background: linear-gradient(135deg, #085e7d, #0d7ea4);
+      color: white;
+      padding: 24px 28px;
+      border-radius: 16px;
+      margin-bottom: 28px;
+    }
+    header h1 { font-size: 26px; font-weight: 800; }
+    header p  { font-size: 15px; opacity: 0.85; margin-top: 4px; }
+    #test-results { margin-top: 8px; }
+    #loading {
+      text-align: center;
+      padding: 40px;
+      font-size: 18px;
+      color: #5c6e7a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧪 SINIcare Test Suite</h1>
+      <p>Unit tests for security, storage, i18n, and scam detection modules</p>
+    </header>
+
+    <div id="loading">Running tests...</div>
+    <div id="test-results"></div>
+  </div>
+
+  <script type="module">
+    import { renderResults } from './test-runner.js';
+    import './security.test.js';
+    import './storage.test.js';
+    import './i18n.test.js';
+
+    document.getElementById('loading').style.display = 'none';
+    renderResults('test-results');
+  </script>
+</body>
+</html>

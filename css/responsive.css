@@ -1,0 +1,177 @@
+/* ============================================================
+   SINIcare — Responsive CSS
+   Tablet and mobile breakpoints (mobile-first)
+   ============================================================ */
+
+/* ── Mobile (< 480px) ── */
+@media (max-width: 480px) {
+  :root {
+    --font-size-base: 18px;
+    --font-size-md:   18px;
+    --font-size-sm:   15px;
+    --font-size-lg:   21px;
+    --font-size-xl:   25px;
+    --font-size-xxl:  30px;
+    --font-size-chat: 18px;
+    --spacing-md:     14px;
+    --spacing-lg:     22px;
+  }
+
+  #app {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .header-logo-tagline {
+    display: none;
+  }
+
+  .header-logo-text {
+    font-size: var(--font-size-lg);
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .qa-btn {
+    min-height: 68px;
+    padding: 8px 4px;
+  }
+
+  .qa-btn-icon  { font-size: 22px; }
+  .qa-btn-label { font-size: 11px; }
+
+  .chat-message { max-width: 94%; }
+
+  .modal {
+    padding: var(--spacing-md);
+    max-height: 95vh;
+    border-radius: var(--radius-md);
+  }
+
+  .modal-title { font-size: var(--font-size-lg); }
+
+  #input-area {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    gap: 8px;
+  }
+
+  #user-input {
+    font-size: 17px;
+    padding: 10px 14px;
+    min-height: 50px;
+  }
+
+  .btn-round {
+    width: 50px;
+    height: 50px;
+    min-height: 50px;
+    font-size: 20px;
+  }
+
+  .bubble {
+    font-size: 17px;
+    padding: 10px 14px;
+  }
+
+  .reminder-text { font-size: 17px; }
+}
+
+/* ── Small tablet (481px – 768px) ── */
+@media (min-width: 481px) and (max-width: 768px) {
+  #app {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Large tablet / small desktop (769px – 900px) ── */
+@media (min-width: 769px) {
+  #app {
+    border-left:  1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .qa-btn {
+    min-height: 82px;
+  }
+}
+
+/* ── Wide desktop (> 900px) ── */
+@media (min-width: 901px) {
+  body {
+    background: linear-gradient(135deg, #e8f4f8 0%, #f5f3ef 60%, #fef9f2 100%);
+  }
+}
+
+/* ── Landscape on small mobile ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .quick-actions-grid {
+    display: none;
+  }
+
+  #app-header {
+    padding: 6px var(--spacing-md);
+    min-height: 44px;
+  }
+
+  .header-logo-icon  { width: 32px; height: 32px; font-size: 16px; }
+  .header-logo-text  { font-size: 20px; }
+
+  #input-area { padding: 6px var(--spacing-sm); }
+}
+
+/* ── Print styles ── */
+@media print {
+  #app-header,
+  #quick-actions,
+  #input-area,
+  #toast-container,
+  .overlay { display: none !important; }
+
+  #chat-area {
+    overflow: visible;
+    height: auto;
+  }
+
+  .bubble {
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Dark mode (system preference) ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-contrast]) {
+    --color-bg:           #111827;
+    --color-surface:      #1F2937;
+    --color-surface-alt:  #243040;
+    --color-border:       #334155;
+    --color-text:         #F1F5F9;
+    --color-text-muted:   #94A3B8;
+    --color-primary-light:#0c2f3d;
+    --color-sini-bubble:  #1e3040;
+    --color-accent-light: #2c1f00;
+  }
+}

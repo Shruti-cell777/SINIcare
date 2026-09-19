@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" data-font-size="normal">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; connect-src https://generativelanguage.googleapis.com; font-src https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
+
+  <!-- SEO -->
+  <title>SINIcare — Your Friendly Digital Companion</title>
+  <meta name="description" content="SINIcare is a friendly AI-powered digital companion for senior citizens. Get help with messages, forms, scam detection, reminders, and more — simply by typing or speaking.">
+  <meta name="keywords" content="senior citizen digital assistant, AI companion for elderly, scam detector, simple AI chat, Hindi English AI helper">
+  <meta name="author" content="SINIcare">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SINIcare — Your Friendly Digital Companion">
+  <meta property="og:description" content="A warm, patient AI companion designed for senior citizens.">
+  <meta property="og:type" content="website">
+
+  <!-- PWA basics -->
+  <meta name="theme-color" content="#0D7EA4">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="SINIcare">
+
+  <!-- Stylesheets -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+  <!-- Skip navigation link for keyboard/screen reader users -->
+  <a href="#chat-area" class="skip-link">Skip to conversation</a>
+
+  <!-- ARIA live region for screen reader announcements -->
+  <div id="live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SETUP MODAL — First run / API Key entry
+       ══════════════════════════════════════════════════════════ -->
+  <div id="setup-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h1 class="modal-title" id="setup-title" data-i18n="setup.title">
+          Welcome to SINIcare! 🌟
+        </h1>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: var(--font-size-md); color: var(--color-text-muted);" data-i18n="setup.subtitle">
+          Let's get you set up in 2 simple steps.
+        </p>
+
+        <div class="info-box">
+          <span class="info-box-icon">🔒</span>
+          <span>Your API key stays <strong>only on your device</strong>. It is never sent to us — only to Google's AI service directly.</span>
+        </div>
+
+        <div class="setup-steps">
+          <div class="setup-step">
+            <div class="setup-step-num">1</div>
+            <div class="setup-step-body">
+              <div class="setup-step-title" data-i18n="setup.step1.title">Get your free AI key</div>
+              <div class="setup-step-desc">
+                Visit <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer">aistudio.google.com</a>,
+                sign in with your Google account, and click <strong>"Get API Key"</strong>.
+              </div>
+            </div>
+          </div>
+          <div class="setup-step">
+            <div class="setup-step-num">2</div>
+            <div class="setup-step-body">
+              <div class="setup-step-title" data-i18n="setup.step2.title">Paste it below</div>
+              <div class="setup-step-desc" data-i18n="setup.step2.desc">
+                Your key stays on your device only — it is never shared.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="setup-api-key" data-i18n="setup.key.label">Your Gemini API Key:</label>
+          <div style="display:flex; gap: 8px; align-items:center;">
+            <input
+              type="password"
+              id="setup-api-key"
+              class="form-input"
+              placeholder="AIzaSy..."
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="setup-key-hint"
+              style="flex:1; font-family: monospace; font-size: 16px; letter-spacing: 0.05em;"
+            >
+            <button id="setup-toggle-key" class="btn btn-ghost" style="min-height:44px; padding: 0 12px; font-size:18px;" aria-label="Show or hide API key">👁️</button>
+          </div>
+          <span id="setup-key-hint" class="form-hint" data-i18n="settings.api.hint">
+            Get your free key at aistudio.google.com
+          </span>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="flex-wrap: wrap; gap: 12px; justify-content: space-between;">
+        <button id="setup-demo-btn" class="btn btn-secondary" style="font-size: var(--font-size-sm); padding: 12px 18px;" data-i18n="setup.demo">
+          Try Demo Mode (Add key later)
+        </button>
+        <button id="setup-start-btn" class="btn btn-primary" style="font-size: var(--font-size-md); padding: 14px 28px;" data-i18n="setup.start">
+          Start Using SINIcare →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SETTINGS MODAL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="settings-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="settings-title" data-i18n="settings.title">⚙️ Settings</h2>
+        <button class="modal-close" id="settings-close-btn" aria-label="Close settings">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- API Key -->
+        <div class="form-group">
+          <label class="form-label" for="settings-api-key" data-i18n="settings.api.label">Gemini API Key</label>
+          <div style="display:flex; gap: 8px; align-items:center;">
+            <input
+              type="password"
+              id="settings-api-key"
+              class="form-input"
+              autocomplete="off"
+              spellcheck="false"
+              style="flex:1; font-family:monospace; letter-spacing:0.05em;"
+              data-i18n-placeholder="settings.api.placeholder"
+            >
+            <button id="toggle-key-visibility" class="btn btn-ghost" style="min-height:44px; padding: 0 12px; font-size:18px;" aria-label="Show or hide API key">👁️</button>
+          </div>
+          <span class="form-hint" data-i18n="settings.api.hint">Get your free key at aistudio.google.com</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Trusted Contact -->
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.contact.label">Trusted Family Member</label>
+          <input
+            type="text"
+            id="settings-contact-name"
+            class="form-input"
+            style="margin-bottom: 8px;"
+            data-i18n-placeholder="settings.contact.name"
+            autocomplete="name"
+          >
+          <input
+            type="tel"
+            id="settings-contact-phone"
+            class="form-input"
+            data-i18n-placeholder="settings.contact.phone"
+            autocomplete="tel"
+          >
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Font size -->
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.font.label">Text Size</label>
+          <div class="font-size-selector" role="group" aria-label="Choose text size">
+            <button id="font-normal" class="font-size-btn active" aria-pressed="true" style="font-size:16px;" data-i18n="settings.font.normal">Normal</button>
+            <button id="font-large"  class="font-size-btn" aria-pressed="false" style="font-size:19px;" data-i18n="settings.font.large">Large</button>
+            <button id="font-xl"     class="font-size-btn" aria-pressed="false" style="font-size:22px;" data-i18n="settings.font.xl">Extra Large</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- TTS toggle -->
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label" data-i18n="settings.tts.label">Read responses aloud</div>
+            <div class="toggle-desc" data-i18n="settings.tts.desc">SINI will speak responses automatically</div>
+          </div>
+          <label class="toggle-switch" aria-label="Read responses aloud">
+            <input type="checkbox" id="settings-tts-toggle" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Speech speed -->
+        <div class="form-group">
+          <label class="form-label" data-i18n="voice.speed.label">Speaking Speed</label>
+          <div class="speech-speed-selector" role="group" aria-label="Choose speaking speed">
+            <button id="speed-slow"   type="button" class="speech-speed-btn" data-speed="0.75" data-i18n="voice.speed.slow">Gentle (Slow)</button>
+            <button id="speed-normal" type="button" class="speech-speed-btn active" data-speed="0.88" data-i18n="voice.speed.normal">Normal (Recommended)</button>
+            <button id="speed-fast"   type="button" class="speech-speed-btn" data-speed="1.1" data-i18n="voice.speed.fast">Faster</button>
+          </div>
+        </div>
+
+        <!-- High contrast toggle -->
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label" data-i18n="settings.contrast.label">High contrast mode</div>
+            <div class="toggle-desc" data-i18n="settings.contrast.desc">For easier reading</div>
+          </div>
+          <label class="toggle-switch" aria-label="High contrast mode">
+            <input type="checkbox" id="settings-contrast-toggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="settings-cancel-btn" onclick="document.getElementById('settings-overlay').classList.add('hidden')" data-i18n="btn.cancel">Cancel</button>
+        <button class="btn btn-primary" id="settings-save-btn" data-i18n="btn.save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SCAM DETECTOR PANEL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="scam-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="scam-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="scam-title" data-i18n="scam.title">🛡️ Scam Checker</h2>
+        <button class="modal-close" id="scam-close-btn" aria-label="Close scam checker">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box">
+          <span class="info-box-icon">💡</span>
+          <span>Paste any suspicious SMS, email, or message below. I'll tell you if it's safe.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="scam-input" data-i18n="scam.label">
+            Paste the suspicious message below:
+          </label>
+          <textarea
+            id="scam-input"
+            class="form-textarea"
+            rows="5"
+            data-i18n-placeholder="scam.placeholder"
+            aria-describedby="scam-hint"
+          ></textarea>
+          <span id="scam-hint" class="form-hint">
+            Examples: bank OTP messages, prize winning SMS, account suspension emails
+          </span>
+        </div>
+
+        <button id="scam-analyze-btn" class="btn btn-primary" style="width:100%; font-size: var(--font-size-md); padding: 16px;" data-i18n="btn.analyze">
+          Analyze Message
+        </button>
+
+        <div id="scam-result" role="region" aria-live="polite" aria-label="Analysis result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SIMPLIFIER PANEL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="simplify-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="simplify-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="simplify-title" data-i18n="simplify.title">📄 Simplify Text</h2>
+        <button class="modal-close" id="simplify-close-btn" aria-label="Close simplifier">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box">
+          <span class="info-box-icon">💡</span>
+          <span>Paste any complex document, letter, or message. I'll explain it in simple words.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="simplify-input" data-i18n="simplify.label">
+            Paste the document or message to simplify:
+          </label>
+          <textarea
+            id="simplify-input"
+            class="form-textarea"
+            rows="6"
+            data-i18n-placeholder="simplify.placeholder"
+          ></textarea>
+        </div>
+
+        <button id="simplify-btn" class="btn btn-primary" style="width:100%; font-size: var(--font-size-md); padding: 16px;" data-i18n="btn.simplify">
+          Simplify This
+        </button>
+
+        <div id="simplify-result" role="region" aria-live="polite" aria-label="Simplified result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       REMINDERS MODAL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="reminders-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reminders-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="reminders-title" data-i18n="reminders.title">⏰ My Reminders</h2>
+        <button class="modal-close" id="reminders-close-btn" aria-label="Close reminders">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Add new reminder -->
+        <div class="form-group">
+          <label class="form-label" for="reminder-input" data-i18n="reminders.add.label">Add a new reminder:</label>
+          <textarea
+            id="reminder-input"
+            class="form-textarea"
+            rows="2"
+            style="min-height: 60px;"
+            data-i18n-placeholder="reminders.placeholder"
+            aria-label="Reminder text"
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reminder-time" data-i18n="reminders.time.label">Time (optional):</label>
+          <input
+            type="time"
+            id="reminder-time"
+            class="form-input"
+            style="max-width: 180px;"
+            aria-label="Reminder time"
+          >
+        </div>
+
+        <button id="reminder-add-btn" class="btn btn-primary" style="width:100%; font-size: var(--font-size-md); padding: 14px;" data-i18n="btn.add">
+          Add Reminder
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Reminders list -->
+        <div id="reminder-list" class="reminder-list" role="list" aria-label="Your reminders">
+          <!-- Rendered by reminders.js -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CALL FAMILY MODAL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="contact-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+    <div class="modal" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="contact-title" data-i18n="contact.title">📞 Call Your Family</h2>
+        <button class="modal-close" id="contact-close-btn" aria-label="Close contact panel">✕</button>
+      </div>
+      <div class="modal-body" style="align-items: center;">
+        <div id="contact-none-msg" style="color: var(--color-text-muted); text-align:center;" class="hidden">
+          <div style="font-size:48px; margin-bottom:12px;">📵</div>
+          <p data-i18n="contact.none">No contact saved yet.</p>
+          <p style="font-size:var(--font-size-sm);" data-i18n="contact.none.hint">Go to ⚙️ Settings to add a trusted family member.</p>
+        </div>
+        <div id="contact-info" style="text-align:center;">
+          <div style="font-size:56px; margin-bottom:8px;">📞</div>
+          <p style="font-size: var(--font-size-lg); font-weight:700; color: var(--color-text);" id="contact-call-name"></p>
+          <p style="font-size: var(--font-size-xl); font-weight:800; color: var(--color-primary); letter-spacing:0.05em;" id="contact-call-phone"></p>
+          <p style="font-size:var(--font-size-sm); color:var(--color-text-muted);" data-i18n="contact.call.hint">This will open your phone's dialler.</p>
+        </div>
+        <button id="contact-call-btn" class="btn btn-primary" style="width:100%; font-size:var(--font-size-lg); padding:18px; margin-top:8px;" data-i18n="contact.call">
+          📞 Call Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       GROCERY ORDERING MODAL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="grocery-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="grocery-title">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="grocery-title">🛒 Order Groceries</h2>
+        <button class="modal-close" id="grocery-close-btn" aria-label="Close grocery ordering">✕</button>
+      </div>
+      <div class="modal-body" id="grocery-body">
+        <!-- Rendered dynamically by grocery.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MAIN APP SHELL
+       ══════════════════════════════════════════════════════════ -->
+  <div id="app" role="application" aria-label="SINIcare — Your Digital Companion">
+
+    <!-- ── Header ── -->
+    <header id="app-header" role="banner">
+      <div class="header-logo">
+        <div class="header-logo-icon" aria-hidden="true">🌟</div>
+        <div>
+          <div class="header-logo-text" data-i18n="app.name">SINIcare</div>
+          <div class="header-logo-tagline" data-i18n="app.tagline">Your Digital Companion</div>
+        </div>
+      </div>
+
+      <nav class="header-controls" aria-label="App controls">
+        <!-- Simple Hindi/English toggle pill -->
+        <button
+          id="lang-toggle"
+          class="lang-pill-btn"
+          aria-label="Switch language between Hindi and English"
+          title="Switch Language / भाषा बदलें"
+        >
+          <span class="lang-pill-flag" id="lang-flag-indicator" aria-hidden="true">🇮🇳</span>
+          <span class="lang-pill-label" id="lang-current-label">हिन्दी</span>
+        </button>
+
+        <!-- Clear chat -->
+        <button
+          id="clear-chat-btn"
+          class="btn btn-icon"
+          aria-label="Clear all chat history"
+          title="Clear Chat"
+        >🗑️</button>
+
+        <!-- Settings -->
+        <button
+          id="settings-btn"
+          class="btn btn-icon"
+          aria-label="Open settings"
+          title="Settings"
+        >⚙️</button>
+      </nav>
+    </header>
+
+    <!-- ── Main content ── -->
+    <main id="app-main">
+
+      <!-- ── Quick Actions ── -->
+      <section id="quick-actions" aria-label="Quick actions">
+        <div class="quick-actions-label" aria-hidden="true">Quick Help</div>
+        <div id="quick-actions-grid" class="quick-actions-grid" role="group" aria-label="Quick action shortcuts">
+
+          <button id="qa-scam" class="qa-btn" aria-label="Check if a message is a scam">
+            <span class="qa-btn-icon" aria-hidden="true">🛡️</span>
+            <span class="qa-btn-label" data-i18n="qa.scam">Check Scam</span>
+          </button>
+
+          <button id="qa-simplify" class="qa-btn" aria-label="Simplify a document or message">
+            <span class="qa-btn-icon" aria-hidden="true">📄</span>
+            <span class="qa-btn-label" data-i18n="qa.simplify">Simplify Text</span>
+          </button>
+
+          <button id="qa-form" class="qa-btn" aria-label="Get help filling out a form">
+            <span class="qa-btn-icon" aria-hidden="true">📋</span>
+            <span class="qa-btn-label" data-i18n="qa.form">Fill a Form</span>
+          </button>
+
+          <button id="qa-reminder" class="qa-btn" aria-label="Set a reminder or view my reminders">
+            <span class="qa-btn-icon" aria-hidden="true">⏰</span>
+            <span class="qa-btn-label" data-i18n="qa.reminder">Reminders</span>
+          </button>
+
+          <button id="qa-grocery" class="qa-btn" aria-label="Order groceries via Blinkit" style="border-color: #f5a623;">
+            <span class="qa-btn-icon" aria-hidden="true">🛒</span>
+            <span class="qa-btn-label" data-i18n="qa.grocery">Order Groceries</span>
+          </button>
+
+          <button id="qa-website" class="qa-btn" aria-label="Get help using a website">
+            <span class="qa-btn-icon" aria-hidden="true">🌐</span>
+            <span class="qa-btn-label" data-i18n="qa.website">Help with Website</span>
+          </button>
+
+          <button id="qa-help" class="qa-btn" aria-label="Call a trusted family member" style="border-color: var(--color-accent);">
+            <span class="qa-btn-icon" aria-hidden="true">📞</span>
+            <span class="qa-btn-label" data-i18n="qa.help">Call Family</span>
+          </button>
+
+        </div>
+      </section>
+
+      <!-- ── Chat area ── -->
+      <section
+        id="chat-area"
+        role="log"
+        aria-label="Conversation with SINI"
+        aria-live="polite"
+        tabindex="0"
+      >
+        <!-- Welcome / empty state -->
+        <div id="welcome-message" role="region" aria-label="Welcome message">
+          <div class="welcome-icon" aria-hidden="true">🌟</div>
+          <h2 style="font-size: var(--font-size-xl); color: var(--color-text);" data-i18n="welcome.greeting">
+            Hello! I'm SINI 👋
+          </h2>
+          <p style="font-size: var(--font-size-md); color: var(--color-text-muted);" data-i18n="welcome.hint">
+            Type or speak anything you need help with — I'm here!
+          </p>
+          <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); font-style:italic;" data-i18n="welcome.examples">
+            Try: "Is this message safe?" or "Help me fill a form"
+          </p>
+        </div>
+        <!-- Chat messages rendered here by chat.js -->
+      </section>
+
+    </main>
+
+    <!-- ── Large Voice Controls Active Banner ── -->
+    <div id="voice-banner" class="voice-banner hidden" role="region" aria-live="assertive" aria-label="Voice input active">
+      <div class="voice-banner-content">
+        <div class="voice-pulse-ring" aria-hidden="true">
+          <span class="voice-pulse-icon">🎙️</span>
+        </div>
+        <div class="voice-banner-text">
+          <div class="voice-status-title" id="voice-status-title" data-i18n="voice.listening.hi">सुन रहा हूँ... बोलिए</div>
+          <div class="voice-transcript-preview" id="voice-transcript-preview">बोलें, आपकी आवाज़ यहाँ दिखेगी...</div>
+        </div>
+        <div class="voice-banner-actions">
+          <button id="voice-stop-btn" type="button" class="btn btn-primary" style="min-height:48px; padding: 10px 18px; font-size:16px;" data-i18n="voice.stop">बोलना पूरा हुआ</button>
+          <button id="voice-cancel-btn" type="button" class="btn btn-ghost" style="min-height:48px; padding: 10px 14px; font-size:15px; color: var(--color-danger);" data-i18n="voice.cancel">✕ रद्द करें</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Input area ── -->
+    <footer id="input-area" role="contentinfo" aria-label="Message input">
+      <!-- Mic button -->
+      <button
+        id="mic-btn"
+        class="btn btn-round"
+        aria-label="Press to speak"
+        aria-pressed="false"
+        title="Speak your message"
+      >🎤</button>
+
+      <!-- Text input -->
+      <textarea
+        id="user-input"
+        rows="1"
+        data-i18n-placeholder="input.placeholder"
+        placeholder="Type your message here..."
+        aria-label="Type your message"
+        aria-multiline="true"
+        autocomplete="off"
+        spellcheck="true"
+      ></textarea>
+
+      <!-- TTS toggle -->
+      <button
+        id="tts-toggle"
+        class="btn btn-round active"
+        aria-label="Read aloud: ON"
+        aria-pressed="true"
+        title="Toggle read-aloud"
+        style="font-size:20px; background:var(--color-surface-alt); color:var(--color-primary); border:2px solid var(--color-border);"
+      >🔊</button>
+
+      <!-- Send button -->
+      <button
+        id="send-btn"
+        class="btn btn-round btn-primary"
+        aria-label="Send message"
+        title="Send"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </footer>
+
+  </div><!-- #app -->
+
+  <!-- ── Toast notifications ── -->
+  <div id="toast-container" aria-live="assertive" aria-atomic="true" role="status"></div>
+
+  <!-- ── App script (ES Module) ── -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

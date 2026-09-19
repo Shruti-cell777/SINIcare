@@ -1,0 +1,19 @@
+{
+  "name": "sinicare",
+  "version": "1.0.0",
+  "description": "GenAI-powered digital companion for senior citizens",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "senior-citizens",
+    "accessibility",
+    "gemini-ai",
+    "hindi-voice-assistant",
+    "digital-companion"
+  ],
+  "author": "",
+  "license": "MIT"
+}
