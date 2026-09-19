@@ -161,3 +161,87 @@ export function renderResults(containerId = 'test-results') {
     container.appendChild(suiteEl);
   });
 }
+
+export function getResults() {
+  return [...results];
+}
+
+// Auto-run in Node.js CLI environment
+if (typeof window === 'undefined' && typeof process !== 'undefined') {
+  globalThis.window = globalThis;
+  if (!globalThis.document) {
+    globalThis.document = {
+      documentElement: { setAttribute: () => {} },
+      getElementById: () => null,
+      createElement: () => ({ setAttribute: () => {}, appendChild: () => {} }),
+      body: { appendChild: () => {} },
+      querySelectorAll: () => []
+    };
+  }
+  if (!globalThis.localStorage) {
+    globalThis.localStorage = (() => {
+      let store = {};
+      return {
+        getItem: k => store[k] ?? null,
+        setItem: (k, v) => { store[k] = String(v); },
+        removeItem: k => { delete store[k]; },
+        clear: () => { store = {}; }
+      };
+    })();
+  }
+  if (!globalThis.CustomEvent) {
+    globalThis.CustomEvent = class CustomEvent {
+      constructor(t, d) { this.type = t; this.detail = d?.detail; }
+    };
+  }
+  if (!globalThis.dispatchEvent) {
+    globalThis.dispatchEvent = () => true;
+  }
+
+  // Load and run all test suites
+  (async () => {
+    try {
+      await import('./security.test.js');
+      await import('./storage.test.js');
+      await import('./i18n.test.js');
+
+      const passed = results.filter(r => r.passed).length;
+      const failed = results.filter(r => !r.passed).length;
+      const total = results.length;
+
+      console.log('\n🧪 SINIcare Test Suite Results:');
+      console.log('────────────────────────────────────────');
+
+      const suites = {};
+      results.forEach(r => {
+        if (!suites[r.suite]) suites[r.suite] = [];
+        suites[r.suite].push(r);
+      });
+
+      for (const [suite, tests] of Object.entries(suites)) {
+        const suitePassed = tests.every(t => t.passed);
+        console.log(`\n${suitePassed ? '✓' : '✗'} ${suite}`);
+        for (const t of tests) {
+          if (t.passed) {
+            console.log(`   ✔ ${t.name}`);
+          } else {
+            console.log(`   ❌ ${t.name}`);
+            console.log(`      Error: ${t.error}`);
+          }
+        }
+      }
+
+      console.log('────────────────────────────────────────');
+      if (failed === 0) {
+        console.log(`\n🎉 Success: ${passed}/${total} tests passed!\n`);
+        process.exitCode = 0;
+      } else {
+        console.error(`\n❌ Failed: ${failed}/${total} tests failed.\n`);
+        process.exitCode = 1;
+      }
+    } catch (err) {
+      console.error('Failed to run test suite:', err);
+      process.exitCode = 1;
+    }
+  })();
+}

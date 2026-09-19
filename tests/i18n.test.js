@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from './test-runner.js';
-import { t, setLang, getLang, SUPPORTED_LANGUAGES, detectLanguage } from '../js/i18n.js';
+import { t, setLang, getLang, SUPPORTED_LANGUAGES, detectLanguage } from '../js/i18n.js?v=2';
 
 describe('i18n language selection', () => {
   test('supports English, Hindi, Tamil, Telugu, Bengali, Marathi', () => {

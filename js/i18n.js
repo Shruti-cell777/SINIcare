@@ -189,6 +189,8 @@ const TRANSLATIONS = {
     'btn.add':               'याददाश्त जोड़ें',
     'btn.clear_chat':        'चैट साफ़ करें',
     'btn.listen':            'सुनें',
+    'btn.send':              'भेजें',
+    'chat.welcome.named':    'नमस्ते {name}! मैं आज आपकी क्या मदद कर सकता हूँ?',
 
     // Scam detector
     'scam.title':            '🛡️ धोखाधड़ी जाँचकर्ता',
@@ -312,7 +314,9 @@ let currentLang = 'en';
 export function setLang(lang) {
   if (!SUPPORTED_LANGUAGES[lang]) return;
   currentLang = lang;
-  document.documentElement.setAttribute('lang', lang);
+  if (typeof document !== 'undefined' && document?.documentElement) {
+    document.documentElement.setAttribute('lang', lang);
+  }
 }
 
 /**
@@ -405,16 +409,18 @@ export function detectLanguage(text) {
     return 'hi';
   }
 
-  // 3. Clear English structural words / complete phrases
+  // 3. Clear English structural words / common conversational words
   const englishStructuralWords = [
-    'the', 'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were',
-    'have', 'has', 'had', 'can', 'could', 'should', 'would', 'will',
+    'a', 'an', 'the', 'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were',
+    'have', 'has', 'had', 'can', 'could', 'should', 'would', 'will', 'do', 'does', 'did',
     'what', 'where', 'when', 'why', 'who', 'how', 'which',
-    'please', 'tell', 'help', 'explain', 'order'
+    'to', 'in', 'on', 'at', 'for', 'from', 'of', 'with', 'by', 'about',
+    'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'my', 'your', 'his', 'her', 'our', 'their',
+    'please', 'tell', 'help', 'explain', 'order', 'make', 'book', 'check', 'payment'
   ];
 
   const engMatches = words.filter(w => englishStructuralWords.includes(w)).length;
-  if (engMatches >= 2 || (words.length <= 2 && engMatches >= 1 && hindiMatches === 0)) {
+  if (engMatches >= 1 && hindiMatches === 0) {
     return 'en';
   }
 
