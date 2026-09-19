@@ -17,6 +17,7 @@ import {
   initStt,
   toggleRecording,
   cancelRecording,
+  finishRecording,
   getIsRecording,
   switchSttLanguage,
   sttSupported,

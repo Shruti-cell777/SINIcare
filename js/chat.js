@@ -236,11 +236,11 @@ function formatSeniorResponseHtml(content, lang) {
   }
 
   // 2. Parse structured sections
-  const hiMeaningMarker = '**यहाँ इसका मतलब है:**';
-  const hiActionMarker  = '**आपको क्या करना चाहिए:**';
-  const enMeaningMarker = '**Here’s what this means:**';
-  const enMeaningMarkerAlt = '**Here\'s what this means:**';
-  const enActionMarker  = '**What you should do:**';
+  const hiMeaningMarker    = '**यहाँ इसका मतलब है:**';
+  const hiActionMarker     = '**आपको क्या करना चाहिए:**';
+  const enMeaningMarker    = "**Here's what this means:**";
+  const enMeaningMarkerAlt = '**Here&#x2019;s what this means:**'; // curly quote fallback
+  const enActionMarker     = '**What you should do:**';
 
   let meaningPart = '';
   let actionPart  = '';
@@ -259,7 +259,7 @@ function formatSeniorResponseHtml(content, lang) {
   const listenLabel = isHi ? '🔊 इसे पूरा सुनें' : '🔊 Listen to this';
 
   if (meaningPart && actionPart) {
-    const meaningLabel = isHi ? '💡 यहाँ इसका मतलब है:' : '💡 Here’s what this means:';
+    const meaningLabel = isHi ? '💡 यहाँ इसका मतलब है:' : "💡 Here's what this means:";
     const actionLabel  = isHi ? '👉 आपको क्या करना चाहिए:' : '👉 What you should do:';
 
     return `

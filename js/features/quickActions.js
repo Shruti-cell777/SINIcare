@@ -8,7 +8,7 @@
 
 'use strict';
 
-import { t } from '../i18n.js';
+import { t, getLang } from '../i18n.js';
 import { sendMessage, injectSiniMessage } from '../chat.js';
 import { openScamDetector } from './scamDetector.js';
 import { openSimplifier } from './simplifier.js';
@@ -97,9 +97,8 @@ function handleFormHelper() {
     return;
   }
 
-  const prompt = t('prompt.form.prefix') + ' ';
   injectSiniMessage(
-    t('qa.form') === 'Fill a Form'
+    getLang() === 'en'
       ? `I can help you fill out any form step by step! 📋\n\nJust tell me:\n1. What form do you need to fill?\n2. Or paste the form's questions below\n\nI'll guide you through each part, one step at a time.`
       : `मैं आपको फॉर्म भरने में मदद करूँगा! 📋\n\nबताइए:\n1. कौन सा फॉर्म भरना है?\n2. या फॉर्म के सवाल नीचे चिपकाएँ\n\nमैं एक-एक कदम बताऊँगा।`
   );
@@ -112,7 +111,7 @@ function handleWebsiteHelp() {
   }
 
   injectSiniMessage(
-    t('qa.website') === 'Help with Website'
+    getLang() === 'en'
       ? `I can help you use any website! 🌐\n\nJust tell me:\n• Which website do you want to use?\n• What do you want to do on it?\n\nFor example: "Help me book a train ticket on IRCTC" or "How do I pay my electricity bill online?"`
       : `मैं आपको कोई भी वेबसाइट इस्तेमाल करने में मदद करूँगा! 🌐\n\nबताइए:\n• कौन सी वेबसाइट?\n• क्या करना है?\n\nजैसे: "IRCTC पर ट्रेन टिकट बुक करना है"`
   );
